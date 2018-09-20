@@ -4,10 +4,11 @@ const fs = require('fs');
 
 const build = process.env.BUILD;
 
-function Reporter(locale) {
+function Reporter(locale, fileContents) {
   this.locale = locale;
   this.report = {};
-  this.fileContents = fs.readFileSync(`./test/locales/json/${this.locale}.json`, 'utf8');
+  this.fileContents = fileContents;
+  //this.fileContents = fs.readFileSync(`./test/locales/json/${this.locale}.json`, 'utf8');
 }
 
 Reporter.prototype.config = function({ key, targetString, sourceString }) {

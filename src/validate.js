@@ -22,12 +22,12 @@ function validateLocales({ locales, sourceLocale }) {
   */
 
   const finalReport = {};
-  const sourceStrings = locales[sourceLocale];
+  const sourceStrings = JSON.parse(locales[sourceLocale]);
 
   return Object.keys(locales).map((targetLocale) => {
 
-    reporter = new Reporter(targetLocale);
-    const targetStrings = locales[targetLocale];
+    reporter = new Reporter(targetLocale, locales[targetLocale]);
+    const targetStrings = JSON.parse(locales[targetLocale]);
 
     const checkedKeys = [];
 
