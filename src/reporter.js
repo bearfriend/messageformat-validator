@@ -22,23 +22,24 @@ Reporter.prototype.log = function(level, type, msg, column) {
   this.report[level] = this.report[level] || {};
   this.report[level][type] = this.report[level][type] || 0;
   this.report[level][type]++;
-  this.checks = [];
+  this.issues = [];
   //}
 
   if (level === 'error' || process.env.verbose) {
 
     const line = this.fileContents.substring(0, this.fileContents.indexOf(`"${this.key}"`)).split('\n').length;
 
-    const check = {
-      path: `${this.locale}.json`,
-      start_line: line,
-      end_line: line,
-      annotation_level: level,
-      message: msg
+    const issue = {
+      file: `${this.locale}.json`,
+      line,
+      column,
+      level,
+      msg
     };
 
-    this.checks.push(check);
+    this.issues.push(issue);
 
+    /*
     const output =
     `\n${type} ${level}\n`+
     `  Message: ${msg}\n`+
@@ -50,8 +51,9 @@ Reporter.prototype.log = function(level, type, msg, column) {
     console.log(output);
 
     if (!build) console.log(`  (Source: "${this.source}")`);
+    */
 
-    return check;
+    return issue;
 
   }
 };
@@ -64,11 +66,11 @@ Reporter.prototype.error = function(type, msg, err) {
 
   const column = err ? err.location.start.column + this.key.length + 7 : '?';
 
-  const check = this.log('error', type, msg, column);
+  const issue = this.log('error', type, msg, column);
   if (build) {
     throw err || msg;
   }
-  return check;
+  return issue;
 };
 
 module.exports = { Reporter };

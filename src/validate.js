@@ -67,7 +67,7 @@ function validateLocales({ locales, sourceLocale }) {
 
     return {
       locale: targetLocale,
-      checks: reporter.checks || [],
+      issues: reporter.issues || [],
       report: reporter.report
     }
 
