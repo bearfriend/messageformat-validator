@@ -7,9 +7,6 @@
     "start": "node index.js",
     "test": "npm start"
   },
-  "bin": {
-    "mfv": "./bin/cli.js"
-  },
   "author": "Daniel Gleckler <daniel.gleckler@gmail.com>",
   "license": "UNLICENSED",
   "dependencies": {
