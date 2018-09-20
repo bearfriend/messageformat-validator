@@ -2,16 +2,16 @@
   "name": "@d2l/messageformat-validator",
   "version": "0.0.1",
   "description": "Validates that ICU MessageFormat strings are well-formed, and that translated target strings are compatible with their source.",
-  "main": "index.js",
+  "main": "src/validate.js",
   "scripts": {
     "start": "node index.js",
     "test": "npm start"
   },
+  "bin": {
+    "mfv": "./bin/cli.js"
+  },
   "author": "Daniel Gleckler <daniel.gleckler@d2l.com>",
   "license": "UNLICENSED",
-  "publishConfig": {
-    "registry":"https://d2lartifacts.artifactoryonline.com/d2lartifacts/api/npm/npm-local/"
-  },
   "dependencies": {
     "make-plural": "^4.2.0",
     "messageformat-parser": "^3.0.0",
