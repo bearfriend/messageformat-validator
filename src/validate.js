@@ -35,6 +35,11 @@ function validateLocales({ locales, sourceLocale }) {
 
       checkedKeys.push(key);
 
+      console.log('****');
+      console.log('targetStrings[key]: ');
+      console.log(targetStrings[key]);
+      console.log('****');
+
       const targetString = targetStrings[key].replace(/\n/g,'\\n');
       const sourceString = sourceStrings[key].replace(/\n/g,'\\n');
       reporter.config({ key, targetString, sourceString });
