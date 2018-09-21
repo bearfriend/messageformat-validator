@@ -1,11 +1,15 @@
 {
   "name": "messageformat-validator",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Validates that ICU MessageFormat strings are well-formed, and that translated target strings are compatible with their source.",
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/bearfriend/messageformat-validator.git"
+  },
   "main": "src/validate.js",
   "scripts": {
     "start": "node index.js",
-    "test": "npm start"
+    "test": "node test.js"
   },
   "author": "Daniel Gleckler <daniel.gleckler@gmail.com>",
   "license": "MIT",

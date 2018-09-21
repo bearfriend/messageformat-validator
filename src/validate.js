@@ -146,10 +146,10 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
     const targetMap = _map(targetTokens);
     const sourceMap = _map(sourceTokens);
 
-    const diff = Array.from(targetMap.arguments).filter(arg => !Array.from(sourceMap.arguments).includes(arg));
+    const argDiff = Array.from(targetMap.arguments).filter(arg => !Array.from(sourceMap.arguments).includes(arg));
 
-    if (diff.length) {
-      reporter.error('argument', `Unrecognized arguments ${JSON.stringify(diff)}`);
+    if (argDiff.length) {
+      reporter.error('argument', `Unrecognized arguments ${JSON.stringify(argDiff)}`);
     }
 
     if (targetString.indexOf(String.fromCharCode(160)) > -1) {
@@ -157,7 +157,13 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
     }
 
     if (targetMap.cases.join(',') !== sourceMap.cases.join(',')) {
-      reporter.error('case', 'Case or nesting order does not match.');
+      const caseDiff = Array.from(targetMap.cases).filter(arg => !Array.from(sourceMap.cases).includes(arg));
+      if (caseDiff.length) {
+        reporter.error('case', `Unrecognized cases ${JSON.stringify(caseDiff)}`);
+      }
+      else {
+        reporter.error('nest', `Nesting order does not match source. `);
+      }
     }
 
     if (targetMap.cases.indexOf('select') > 0) {

@@ -31,12 +31,14 @@ Reporter.prototype.log = function(level, type, msg, column) {
     const line = this.fileContents.substring(0, this.fileContents.indexOf(`"${this.key}"`)).split('\n').length;
 
     const issue = {
-      file: `${this.locale}.json`,
+      locale: this.locale,
       line,
       column,
       type,
-      level: level === 'error' ? 'failure' : level,
-      msg
+      level,
+      msg,
+      target: this.target,
+      source: this.source
     };
 
     if (this.key) issue.key = this.key;
@@ -68,7 +70,7 @@ Reporter.prototype.warning = function(type, msg) {
 
 Reporter.prototype.error = function(type, msg, err) {
 
-  const column = err ? err.location.start.column + this.key.length + 7 : '?';
+  const column = err ? err.location.start.column + this.key.length + 7 : 0;
 
   const issue = this.log('error', type, msg, column);
   if (build) {
