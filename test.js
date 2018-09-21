@@ -5,10 +5,8 @@ const locales = requireDir('./test/locales/json'); // TODO: make dynamic
 const { validateLocales } = require('./src/validate');
 
 Object.keys(locales).forEach(key => {
-  locales[key] = JSON.stringify(locales[key]);
+  locales[key] = JSON.stringify(locales[key], null, 2);
 });
-
-console.log(locales);
 
 const issues = validateLocales({
   locales,

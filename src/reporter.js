@@ -7,7 +7,7 @@ const build = process.env.BUILD;
 function Reporter(locale, fileContents) {
   this.locale = locale;
   this.fileContents = fileContents;
-  this.report = {};
+  this.report = { totals: { errors: 0, warnings: 0 } };
   this.issues = [];
 }
 
@@ -20,7 +20,6 @@ Reporter.prototype.config = function({ key, targetString, sourceString }) {
 Reporter.prototype.log = function(level, type, msg, column) {
 
   const levels = level + 's';
-  this.report.totals = this.report.totals || { errors: 0, warnings: 0 };
   this.report.totals[levels]++;
 
   this.report[levels] = this.report[levels] || {};

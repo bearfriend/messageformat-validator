@@ -22,7 +22,15 @@ function validateLocales({ locales, sourceLocale }) {
   */
 
   const finalReport = {};
-  const sourceStrings = JSON.parse(locales[sourceLocale]);
+
+  let sourceStrings;
+
+  try {
+    sourceStrings = JSON.parse(locales[sourceLocale]);
+  }
+  catch(e) {
+    return e;
+  }
 
   return Object.keys(locales).map((targetLocale) => {
 
@@ -111,7 +119,15 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
   if (parsedTarget) {
 
     const targetTokens = parsedTarget;
-    const sourceTokens = parse(sourceString, pluralCats[sourceLocale]);
+    let sourceTokens;
+
+    try {
+      sourceTokens = parse(sourceString, pluralCats[sourceLocale]);
+    }
+    catch(e) {
+      reporter.error('source-error', 'Failed to parse source string.', e);
+      return;
+    }
 
     const targetMap = _map(targetTokens);
     const sourceMap = _map(sourceTokens);
@@ -141,9 +157,6 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
       }
     }
   }
-
-  return reporter.checks;
-
 }
 
 function _map(tokens, partsMap = { flatMap: [], arguments: new Set(), cases: [] }) {
