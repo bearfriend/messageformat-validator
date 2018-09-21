@@ -170,7 +170,7 @@ function _map(tokens, partsMap = { flatMap: [], arguments: new Set(), cases: [] 
             break;
           }
 
-          map(case_.tokens, partsMap);
+          _map(case_.tokens, partsMap);
         });
       }
     }
