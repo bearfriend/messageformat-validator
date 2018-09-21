@@ -6,9 +6,9 @@ const build = process.env.BUILD;
 
 function Reporter(locale, fileContents) {
   this.locale = locale;
-  this.report = {};
   this.fileContents = fileContents;
-  //this.fileContents = fs.readFileSync(`./test/locales/json/${this.locale}.json`, 'utf8');
+  this.report = {};
+  this.issues = [];
 }
 
 Reporter.prototype.config = function({ key, targetString, sourceString }) {
@@ -19,12 +19,13 @@ Reporter.prototype.config = function({ key, targetString, sourceString }) {
 
 Reporter.prototype.log = function(level, type, msg, column) {
 
-  //if (this.report[level]) {
-  this.report[level] = this.report[level] || {};
-  this.report[level][type] = this.report[level][type] || 0;
-  this.report[level][type]++;
-  this.issues = [];
-  //}
+  const levels = level + 's';
+  this.report.totals = this.report.totals || { errors: 0, warnings: 0 };
+  this.report.totals[levels]++;
+
+  this.report[levels] = this.report[levels] || {};
+  this.report[levels][type] = this.report[levels][type] || 0;
+  this.report[levels][type]++;
 
   if (level === 'error' || process.env.verbose) {
 
@@ -38,6 +39,8 @@ Reporter.prototype.log = function(level, type, msg, column) {
       level: level === 'error' ? 'failure' : level,
       msg
     };
+
+    if (this.key) issue.key = this.key;
 
     this.issues.push(issue);
 

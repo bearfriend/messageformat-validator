@@ -35,11 +35,6 @@ function validateLocales({ locales, sourceLocale }) {
 
       checkedKeys.push(key);
 
-      console.log('****');
-      console.log('targetStrings[key]: ');
-      console.log(targetStrings[key]);
-      console.log('****');
-
       const targetString = targetStrings[key].replace(/\n/g,'\\n');
       const sourceString = sourceStrings[key].replace(/\n/g,'\\n');
       reporter.config({ key, targetString, sourceString });
@@ -65,10 +60,12 @@ function validateLocales({ locales, sourceLocale }) {
     //console.log(`\nLocale report for "${reporter.locale}":`);
     //console.log(JSON.stringify(reporter.report, null, 2));
 
+    /*
     Object.keys(reporter.report).forEach((key) => {
       finalReport[key] = finalReport[key] || 0;
       finalReport[key] += Object.values(reporter.report[key]).reduce((t,v) => t+v);
     });
+    */
 
     return {
       locale: targetLocale,
