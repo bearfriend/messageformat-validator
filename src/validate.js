@@ -4,7 +4,7 @@ const parse = require('messageformat-parser').parse;
 const pluralCats = require('make-plural/umd/pluralCategories');
 const { Reporter } = require('./reporter');
 
-const build = process.env.BUILD;//process.argv.includes('--build');
+//const build = process.env.BUILD;//process.argv.includes('--build');
 
 let reporter;
 
@@ -20,8 +20,7 @@ function validateLocales({ locales, sourceLocale }) {
     Object.assign(targetResources, localeResources);
   }
   */
-
-  const finalReport = {};
+  //const finalReport = {};
 
   let sourceStrings;
 
@@ -33,7 +32,7 @@ function validateLocales({ locales, sourceLocale }) {
       locale: sourceLocale,
       parsed: false,
       _error: e
-    }]
+    }];
   }
 
   return Object.keys(locales).map((targetLocale) => {
@@ -99,7 +98,7 @@ function validateLocales({ locales, sourceLocale }) {
   });
 
   //if (!build) console.log('\nFINAL REPORT:\n',JSON.stringify(finalReport, null, 2),'\n');
-};
+}
 
 function validateString({ targetString, targetLocale, sourceString, sourceLocale }) {
 
@@ -123,7 +122,7 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
       reporter.error('plural-key', e.message, e);
     }
     else if ((targetString.match(/{/g) || 0).length !== (targetString.match(/}/g) || 0).length) {
-      const charInstead = ''
+      //const charInstead = ''
       reporter.error('brace', 'Mismatched braces (i.e. {}). ' + e.message, e);
     }
     else {
@@ -209,7 +208,7 @@ function _map(tokens, partsMap = { flatMap: [], arguments: new Set(), cases: [] 
 
   return partsMap;
 
-};
+}
 
 module.exports = {
   validateString,
