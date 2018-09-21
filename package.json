@@ -8,7 +8,7 @@
     "test": "npm start"
   },
   "author": "Daniel Gleckler <daniel.gleckler@gmail.com>",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "dependencies": {
     "make-plural": "^4.2.0",
     "messageformat-parser": "^3.0.0",
