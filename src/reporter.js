@@ -26,7 +26,7 @@ Reporter.prototype.log = function(level, type, msg, column) {
   this.report[levels][type] = this.report[levels][type] || 0;
   this.report[levels][type]++;
 
-  if (level === 'error' || process.env.verbose) {
+  //if (level === 'error' || process.env.verbose) {
 
     const line = this.fileContents.substring(0, this.fileContents.indexOf(`"${this.key}"`)).split('\n').length;
 
@@ -59,7 +59,7 @@ Reporter.prototype.log = function(level, type, msg, column) {
 
     return issue;
 
-  }
+  //}
 };
 
 Reporter.prototype.warning = function(type, msg) {

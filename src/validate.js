@@ -29,13 +29,27 @@ function validateLocales({ locales, sourceLocale }) {
     sourceStrings = JSON.parse(locales[sourceLocale]);
   }
   catch(e) {
-    return e;
+    return [{
+      locale: sourceLocale,
+      parsed: false,
+      _error: e
+    }]
   }
 
   return Object.keys(locales).map((targetLocale) => {
 
     reporter = new Reporter(targetLocale, locales[targetLocale]);
-    const targetStrings = JSON.parse(locales[targetLocale]);
+    let targetStrings;
+    try {
+      targetStrings = JSON.parse(locales[targetLocale]);
+    }
+    catch(e) {
+      return {
+        locale: targetLocale,
+        parsed: false,
+        _error: e
+      };
+    }
 
     const checkedKeys = [];
 
@@ -78,7 +92,8 @@ function validateLocales({ locales, sourceLocale }) {
     return {
       locale: targetLocale,
       issues: reporter.issues || [],
-      report: reporter.report
+      report: reporter.report,
+      parsed: true
     }
 
   });
