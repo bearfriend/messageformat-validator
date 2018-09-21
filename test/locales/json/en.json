@@ -1,7 +1,8 @@
 {
 	"last_accessed_at": "Last Accessed {date}",
 	"course_selection_max_message": "The maximum number of assignments to users is limited to {assignmentlimit} for each operation.",
-	"people_count": "{count, plural, one {{gender, select, male {{count} man} female {{count} woman}}} other {{gender, select, male {{count} men} female {{count} women} }}}",
+	"people_count": "{count, plural, one {{gender, select, male {{count} man} female {{count} woman} other {{count} person}}} other {{gender, select, male {{count} men} female {{count} women} other {{count} people} }}}",
+	"missing": "missing string",
 	"confirm_enroll_info": "{type, select, many_many {many_many} many_one {will be enrolled into {selected}} one_many {{affected} will be enrolled into the following courses} one_one {{affected} will be enrolled into {selected}.} none {none}}",
 	"confirm_assignment_course_info": "{userList} {type, select, many_many {will be assigned the following {count} courses} many_one {will be assigned {selected}.} one_many {{affected} will be assigned the following {count} courses} one_one {{affected} will be assigned {selected}.} none {Adding courses}}"
 }

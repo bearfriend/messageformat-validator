@@ -56,8 +56,8 @@ function validateLocales({ locales, sourceLocale }) {
 
       checkedKeys.push(key);
 
-      const targetString = targetStrings[key].replace(/\n/g,'\\n');
-      const sourceString = sourceStrings[key].replace(/\n/g,'\\n');
+      const targetString = targetStrings[key];//.replace(/\n/g,'\\n');
+      const sourceString = sourceStrings[key];//.replace(/\n/g,'\\n');
       reporter.config({ key, targetString, sourceString });
 
       validateString({
@@ -100,13 +100,24 @@ function validateLocales({ locales, sourceLocale }) {
   //if (!build) console.log('\nFINAL REPORT:\n',JSON.stringify(finalReport, null, 2),'\n');
 }
 
-function validateString({ targetString, targetLocale, sourceString, sourceLocale }) {
+function validateString({ targetString: target, targetLocale, sourceString, sourceLocale }) {
+
+  let stringOptions = {};
+  let targetString;
+
+  if (Array.isArray(target)) {
+    targetString = target[0];
+    stringOptions = target[1];
+  }
+  else {
+    targetString = target;
+  }
 
   if (targetString.indexOf(/\n/g) > -1) {
     reporter.warning('newline', 'String contains newline(s). This is unnecessary and may affect error position reporting.');
   }
 
-  if (sourceLocale && targetLocale != sourceLocale && targetString === sourceString) {
+  if (!stringOptions.exactMatch && sourceLocale && targetLocale != sourceLocale && targetString === sourceString) {
     reporter.warning('untranslated', `String has not been translated.`)
     return reporter.checks;
   }
@@ -162,6 +173,7 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
         reporter.error('case', `Unrecognized cases ${JSON.stringify(caseDiff)}`);
       }
       else {
+        // TODO: better identify case order vs nesting order
         reporter.error('nest', `Nesting order does not match source. `);
       }
     }
@@ -195,12 +207,12 @@ function _map(tokens, partsMap = { flatMap: [], arguments: new Set(), cases: [] 
           switch (token.type) {
             case 'select':
 
-            partsMap.cases.push('select', case_.key);
+            partsMap.cases.push('|select|', case_.key);
 
             break;
             case 'plural':
 
-            partsMap.cases.push('plural');
+            partsMap.cases.push('|plural|');
 
             break;
           }
