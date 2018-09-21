@@ -34,8 +34,8 @@ Reporter.prototype.log = function(level, type, msg, column) {
       file: `${this.locale}.json`,
       line,
       column,
-      type
-      level: level === 'error' : 'failure' : level
+      type,
+      level: level === 'error' ? 'failure' : level,
       msg
     };
 
