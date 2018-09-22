@@ -130,7 +130,7 @@ function validateString({ targetString: target, targetLocale, sourceString, sour
   catch(e) {
 
     if (e.message.indexOf('Invalid key') === 0) {
-      reporter.error('plural-key', e.message, e);
+      reporter.error('plural-key', e.message);
     }
     else if ((targetString.match(/{/g) || 0).length !== (targetString.match(/}/g) || 0).length) {
       //const charInstead = ''
@@ -150,7 +150,7 @@ function validateString({ targetString: target, targetLocale, sourceString, sour
       sourceTokens = parse(sourceString, pluralCats[sourceLocale]);
     }
     catch(e) {
-      reporter.error('source-error', 'Failed to parse source string.', e);
+      reporter.error('source-error', 'Failed to parse source string.');
       return;
     }
 
