@@ -74,7 +74,7 @@ function validateLocales({ locales, sourceLocale }) {
 
     if (missingKeys.length) {
       missingKeys.forEach((key) => {
-        reporter.config({ key, target: '', source: sourceStrings[key] });
+        reporter.config({ key, sourceString: sourceStrings[key] });
         reporter.error('missing', `String missing from locale file.`)
       })
     }
