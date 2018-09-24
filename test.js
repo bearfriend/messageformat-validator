@@ -13,7 +13,8 @@ Object.keys(locales).forEach(key => {
 
 const locales = {
   en: fs.readFileSync('./test/locales/json/bigfiles/en.json', 'utf8'),
-  fr: fs.readFileSync('./test/locales/json/bigfiles/fr.json', 'utf8')
+  fr: fs.readFileSync('./test/locales/json/bigfiles/fr.json', 'utf8'),
+  ar: fs.readFileSync('./test/locales/json/bigfiles/ar.json', 'utf8')
 }
 
 

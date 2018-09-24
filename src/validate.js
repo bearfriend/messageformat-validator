@@ -113,8 +113,8 @@ function validateString({ targetString: target, targetLocale, sourceString, sour
     targetString = target;
   }
 
-  if (targetString.indexOf(/\n/g) > -1) {
-    reporter.warning('newline', 'String contains newline(s). This is unnecessary and may affect error position reporting.');
+  if (targetString.indexOf(String.fromCharCode(10)) > -1) {
+    reporter.warning('newline', 'String contains newline(s), which are unnecessary and may affect error position reporting.');
   }
 
   if (!stringOptions.exactMatch && sourceLocale && targetLocale != sourceLocale && targetString === sourceString) {
@@ -123,7 +123,6 @@ function validateString({ targetString: target, targetLocale, sourceString, sour
   }
 
   let parsedTarget;
-
   try {
     parsedTarget = Object.freeze(parse(targetString, pluralCats[targetLocale.split('-')[0]]));
   }
