@@ -157,13 +157,13 @@ function validateString({ targetString: target, targetLocale, sourceString, sour
     const sourceMap = _map(sourceTokens);
 
     const argDiff = Array.from(targetMap.arguments).filter(arg => !Array.from(sourceMap.arguments).includes(arg));
-
     if (argDiff.length) {
       reporter.error('argument', `Unrecognized arguments ${JSON.stringify(argDiff)}`);
     }
 
-    if (targetString.indexOf(String.fromCharCode(160)) > -1) {
-      reporter.warning('nbsp', 'String contains a non-breaking space.');
+    const nbspPos = targetString.indexOf(String.fromCharCode(160));
+    if (nbspPos > -1) {
+      reporter.warning('nbsp', `String contains a non-breaking space at column ${nbspPos}.`, { column: nbspPos });
     }
 
     if (targetMap.cases.join(',') !== sourceMap.cases.join(',')) {

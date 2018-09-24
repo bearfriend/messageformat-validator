@@ -64,13 +64,13 @@ Reporter.prototype.log = function(level, type, msg, column) {
   //}
 };
 
-Reporter.prototype.warning = function(type, msg) {
-  return this.log('warning', type, msg);
+Reporter.prototype.warning = function(type, msg, details = {}) {
+  return this.log('warning', type, msg, details.column);
 };
 
 Reporter.prototype.error = function(type, msg, err) {
 
-  const column = err ? err.location.start.column + this.key.length + 7 : 0;
+  const column = err ? err.column || err.location.start.column + this.key.length + 7 : 0;
 
   const issue = this.log('error', type, msg, column);
   if (build) {
