@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const parse = require('messageformat-parser').parse;
 const pluralCats = require('make-plural/umd/pluralCategories');
 const { Reporter } = require('./reporter');
@@ -102,12 +103,12 @@ function validateLocales({ locales, sourceLocale }) {
 
 function validateString({ targetString: target, targetLocale, sourceString, sourceLocale }) {
 
-  let stringOptions = {};
+  let targetOptions = {};
   let targetString;
 
   if (Array.isArray(target)) {
     targetString = target[0];
-    stringOptions = target[1];
+    targetOptions = target[1];
   }
   else {
     targetString = target;
@@ -117,8 +118,19 @@ function validateString({ targetString: target, targetLocale, sourceString, sour
     reporter.warning('newline', 'String contains newline(s), which are unnecessary and may affect error position reporting.');
   }
 
-  if (!stringOptions.exactMatch && sourceLocale && targetLocale != sourceLocale && targetString === sourceString) {
-    reporter.warning('untranslated', `String has not been translated.`)
+  if (sourceLocale
+    && targetLocale !== sourceLocale
+    && targetString === sourceString) {
+
+    const sourceHash = crypto
+      .createHash('sha1')
+      .update(sourceString)
+      .digest("base64");
+
+    if (targetOptions.translated !== true || targetOptions.sourceHash !== sourceHash) {
+      reporter.warning('untranslated', `String has not been translated.`)
+    }
+
     return reporter.checks;
   }
 
