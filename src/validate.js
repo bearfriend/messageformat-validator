@@ -57,13 +57,25 @@ function validateLocales({ locales, sourceLocale }) {
 
       checkedKeys.push(key);
 
-      const targetString = targetStrings[key];//.replace(/\n/g,'\\n');
+      const target = targetStrings[key];//.replace(/\n/g,'\\n');
       const sourceString = sourceStrings[key];//.replace(/\n/g,'\\n');
+      let targetOptions = {},
+        targetString;
+
+      if (Array.isArray(target)) {
+        targetString = target[0];
+        targetOptions = target[1];
+      }
+      else {
+        targetString = target;
+      }
+
       reporter.config({ key, targetString, sourceString });
 
       validateString({
         targetString,
         targetLocale,
+        targetOptions,
         sourceString,
         sourceLocale
       });
@@ -101,18 +113,7 @@ function validateLocales({ locales, sourceLocale }) {
   //if (!build) console.log('\nFINAL REPORT:\n',JSON.stringify(finalReport, null, 2),'\n');
 }
 
-function validateString({ targetString: target, targetLocale, sourceString, sourceLocale }) {
-
-  let targetOptions = {};
-  let targetString;
-
-  if (Array.isArray(target)) {
-    targetString = target[0];
-    targetOptions = target[1];
-  }
-  else {
-    targetString = target;
-  }
+function validateString({ targetString, targetLocale, targetOptions, sourceString, sourceLocale }) {
 
   if (targetString.indexOf(String.fromCharCode(10)) > -1) {
     reporter.warning('newline', 'String contains newline(s), which are unnecessary and may affect error position reporting.');
