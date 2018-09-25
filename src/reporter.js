@@ -13,7 +13,6 @@ function Reporter(locale, fileContents) {
 
 Reporter.prototype.config = function({ key, targetString, sourceString }) {
   this.key = key;
-  console.log(targetString);
   if (targetString) this.target = targetString.replace(/\n/g, '\n');
   this.source = sourceString.replace(/\n/g, '\n');
 };

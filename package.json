@@ -1,6 +1,6 @@
 {
   "name": "messageformat-validator",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "Validates that ICU MessageFormat strings are well-formed, and that translated target strings are compatible with their source.",
   "repository": {
     "type" : "git",
@@ -9,7 +9,8 @@
   "main": "src/validate.js",
   "scripts": {
     "start": "node index.js",
-    "test": "node test.js"
+    "test": "node test.js",
+    "posttest": "eslint ./"
   },
   "author": "Daniel Gleckler <daniel.gleckler@gmail.com>",
   "license": "MIT",
