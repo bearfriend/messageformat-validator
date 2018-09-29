@@ -142,7 +142,11 @@ function validateString({ targetString, targetLocale, targetOptions, sourceStrin
   catch(e) {
 
     if (e.message.indexOf('Invalid key') === 0) {
-      reporter.error('plural-key', e.message);
+      const backtickCaptures = e.message.match(/`([^`]*)`/g);
+      const badKey = backtickCaptures[0].slice(1, -1);
+      const pluralArg = backtickCaptures[1].slice(1, -1)
+      const column = targetString.indexOf(badKey, targetString.indexOf(`{${pluralArg}, plural, {`));
+      reporter.error('plural-key', e.message, { column });
     }
     else if ((targetString.match(/{/g) || 0).length !== (targetString.match(/}/g) || 0).length) {
       //const charInstead = ''
