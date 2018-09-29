@@ -17,7 +17,7 @@ Reporter.prototype.config = function({ key, targetString, sourceString }) {
   this.source = sourceString.replace(/\n/g, '\n');
 };
 
-Reporter.prototype.log = function(level, type, msg, column) {
+Reporter.prototype.log = function(level, type, msg, column = 0) {
 
   const levels = level + 's';
   this.report.totals[levels]++;
@@ -25,8 +25,6 @@ Reporter.prototype.log = function(level, type, msg, column) {
   this.report[levels] = this.report[levels] || {};
   this.report[levels][type] = this.report[levels][type] || 0;
   this.report[levels][type]++;
-
-  //if (level === 'error' || process.env.verbose) {
 
     const line = this.fileContents.substring(0, this.fileContents.indexOf(`"${this.key}"`)).split('\n').length;
 
@@ -45,32 +43,61 @@ Reporter.prototype.log = function(level, type, msg, column) {
 
     this.issues.push(issue);
 
-    /*
-    const output =
-    `\n${type} ${level}\n`+
-    `  Message: ${msg}\n`+
-    `  File: ${this.locale}.json\n`+
-    `  Line: ${line}:${column}\n`+
-    `  Key: ${this.key}\n`+
-    `  ${(build ? 'String' : 'Target')}: "${this.target}"`
-
-    console.log(output);
-
-    if (!build) console.log(`  (Source: "${this.source}")`);
-    */
-
     return issue;
-
-  //}
 };
 
 Reporter.prototype.warning = function(type, msg, details = {}) {
-  return this.log('warning', type, msg, details.column);
+
+  const relativeColumn = details.column || 0;
+
+  let column, keyPos, linePos, valPos;
+
+  const cleanTarget = this.target
+    .replace(/\n/g, '\\n')
+    .replace(/"/g, '\\"');
+
+  if (type.match(/split|newline/)) {
+    column = 0;
+  }
+  else if (this.key) {
+    keyPos = this.fileContents.indexOf(`"${this.key}"`);
+    valPos = this.fileContents.indexOf(`"${cleanTarget}"`, keyPos);
+    linePos = this.fileContents.lastIndexOf(String.fromCharCode(10), keyPos);
+    column = (valPos + 1) - linePos + relativeColumn;
+
+    if (valPos === -1) {
+      // the target string likely contains a backslash that does not escape anything
+      column = 0;
+    }
+  }
+
+  return this.log('warning', type, msg, column);
 };
 
 Reporter.prototype.error = function(type, msg, err) {
 
-  const column = err ? err.column || err.location.start.column + this.key.length + 7 : 0;
+  const relativeColumn = err ? err.column || err.location.start.column : 0;
+
+  let column, keyPos, linePos, valPos;
+
+  const cleanTarget = this.target
+    .replace(/\n/g, '\\n')
+    .replace(/"/g, '\\"');
+
+  if (type === 'missing') {
+    column = 0;
+  }
+  else if (this.key) {
+    keyPos = this.fileContents.indexOf(`"${this.key}"`);
+    valPos = this.fileContents.indexOf(`"${cleanTarget}"`, keyPos);
+    linePos = this.fileContents.lastIndexOf(String.fromCharCode(10), keyPos);
+    column = (valPos + 1) - linePos + relativeColumn;
+
+    if (valPos === -1) {
+      // the target string likely contains a backslash that does not escape anything
+      column = 0;
+    }
+  }
 
   const issue = this.log('error', type, msg, column);
   if (build) {

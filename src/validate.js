@@ -178,7 +178,10 @@ function validateString({ targetString, targetLocale, targetOptions, sourceStrin
       reporter.error('argument', `Unrecognized arguments ${JSON.stringify(argDiff)}`);
     }
 
-    const nbspPos = targetString.indexOf(String.fromCharCode(160));
+    const nbspPos = targetString
+      .replace(/\n/g, '\\n')
+      .replace(/"/, '\\"')
+      .indexOf(String.fromCharCode(160));
     if (nbspPos > -1) {
       reporter.warning('nbsp', `String contains a non-breaking space at column ${nbspPos}.`, { column: nbspPos });
     }
