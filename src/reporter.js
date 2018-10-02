@@ -78,24 +78,27 @@ Reporter.prototype.error = function(type, msg, err) {
 
   const relativeColumn = err ? err.column || err.location.start.column : 0;
 
-  let column, keyPos, linePos, valPos;
+  let column = 0,
+  keyPos, linePos, valPos;
 
-  const cleanTarget = this.target
-    .replace(/\n/g, '\\n')
-    .replace(/"/g, '\\"');
+  if (this.string) {
+    const cleanTarget = this.target
+      .replace(/\n/g, '\\n')
+      .replace(/"/g, '\\"');
 
-  if (type === 'missing') {
-    column = 0;
-  }
-  else if (this.key) {
-    keyPos = this.fileContents.indexOf(`"${this.key}"`);
-    valPos = this.fileContents.indexOf(`"${cleanTarget}"`, keyPos);
-    linePos = this.fileContents.lastIndexOf(String.fromCharCode(10), keyPos);
-    column = (valPos + 1) - linePos + relativeColumn;
-
-    if (valPos === -1) {
-      // the target string likely contains a backslash that does not escape anything
+    if (type === 'missing') {
       column = 0;
+    }
+    else if (this.key) {
+      keyPos = this.fileContents.indexOf(`"${this.key}"`);
+      valPos = this.fileContents.indexOf(`"${cleanTarget}"`, keyPos);
+      linePos = this.fileContents.lastIndexOf(String.fromCharCode(10), keyPos);
+      column = (valPos + 1) - linePos + relativeColumn;
+
+      if (valPos === -1) {
+        // the target string likely contains a backslash that does not escape anything
+        column = 0;
+      }
     }
   }
 

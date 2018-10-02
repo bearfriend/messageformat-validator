@@ -24,41 +24,46 @@ function validateLocales({ locales, sourceLocale }) {
   //const finalReport = {};
 
   let sourceStrings;
-  let _error;
 
   try {
     sourceStrings = JSON.parse(locales[sourceLocale]);
   }
   catch(e) {
-
-    try {
-      sourceStrings = JSON.parse(locales[sourceLocale].trim());
-    }
-    catch(ee) {
-      return [{
-        locale: sourceLocale,
-        parsed: false,
-        _error: ee
-      }];
-    }
-
-    _error = e;
-
+    return [{
+      locale: sourceLocale,
+      parsed: false,
+      _error: e
+    }];
   }
 
   return Object.keys(locales).map((targetLocale) => {
 
     reporter = new Reporter(targetLocale, locales[targetLocale]);
+
     let targetStrings;
     try {
       targetStrings = JSON.parse(locales[targetLocale]);
     }
     catch(e) {
-      return {
-        locale: targetLocale,
-        parsed: false,
-        _error: e
-      };
+
+      try {
+        targetStrings = JSON.parse(locales[targetLocale].trim());
+      }
+      catch(ee) {
+
+        reporter.error('json-parse', ee.message);
+
+        return [{
+          locale: targetLocale,
+          parsed: false,
+          issues: reporter.issues || [],
+          report: reporter.report,
+          _error: ee
+        }];
+      }
+
+      reporter.error('json-parse', e.message);
+
     }
 
     const checkedKeys = [];
@@ -111,18 +116,12 @@ function validateLocales({ locales, sourceLocale }) {
     });
     */
 
-    const response = {
+    return {
       locale: targetLocale,
       issues: reporter.issues || [],
       report: reporter.report,
       parsed: true
     }
-
-    if (_error) {
-      response._error = _error;
-    }
-
-    return response;
 
   });
 
