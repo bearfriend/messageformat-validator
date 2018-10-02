@@ -51,7 +51,9 @@ function validateLocales({ locales, sourceLocale }) {
       }
       catch(ee) {
 
-        reporter.error('json-parse', ee.message);
+        const column = Number(ee.message.split(' ').pop());
+
+        reporter.error('json-parse-fatal', ee.message, { column });
 
         return [{
           locale: targetLocale,
@@ -62,7 +64,9 @@ function validateLocales({ locales, sourceLocale }) {
         }];
       }
 
-      reporter.error('json-parse', e.message);
+      const column = Number(e.message.split(' ').pop());
+
+      reporter.error('json-parse', e.message, { column });
 
     }
 
@@ -165,10 +169,10 @@ function validateString({ targetString, targetLocale, targetOptions, sourceStrin
     }
     else if ((targetString.match(/{/g) || 0).length !== (targetString.match(/}/g) || 0).length) {
       //const charInstead = ''
-      reporter.error('brace', 'Mismatched braces (i.e. {}). ' + e.message, e);
+      reporter.error('brace', 'Mismatched braces (i.e. {}). ' + e.message, { column: e.location.start.column });
     }
     else {
-      reporter.error('parse', e.message, e);
+      reporter.error('parse', e.message, { column: e.location.start.column });
     }
   }
 

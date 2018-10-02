@@ -2,7 +2,7 @@
 
 //const fs = require('fs');
 
-const build = process.env.BUILD;
+//const build = process.env.BUILD;
 
 function Reporter(locale, fileContents) {
   this.locale = locale;
@@ -17,7 +17,7 @@ Reporter.prototype.config = function({ key, targetString, sourceString }) {
   this.source = sourceString.replace(/\n/g, '\n');
 };
 
-Reporter.prototype.log = function(level, type, msg, column = 0) {
+Reporter.prototype.log = function(level, type, msg, column = 0, line) {
 
   const levels = level + 's';
   this.report.totals[levels]++;
@@ -26,24 +26,25 @@ Reporter.prototype.log = function(level, type, msg, column = 0) {
   this.report[levels][type] = this.report[levels][type] || 0;
   this.report[levels][type]++;
 
-    const line = this.fileContents.substring(0, this.fileContents.indexOf(`"${this.key}"`)).split('\n').length;
+  const start = this.key ? this.fileContents.indexOf(`"${this.key}"`) : column;
+  line = line || this.fileContents.substring(0, start).split('\n').length;
 
-    const issue = {
-      locale: this.locale,
-      line,
-      column,
-      type,
-      level,
-      msg,
-      target: this.target,
-      source: this.source
-    };
+  const issue = {
+    locale: this.locale,
+    line,
+    column,
+    type,
+    level,
+    msg,
+    target: this.target,
+    source: this.source
+  };
 
-    if (this.key) issue.key = this.key;
+  if (this.key) issue.key = this.key;
 
-    this.issues.push(issue);
+  this.issues.push(issue);
 
-    return issue;
+  return issue;
 };
 
 Reporter.prototype.warning = function(type, msg, details = {}) {
@@ -74,12 +75,12 @@ Reporter.prototype.warning = function(type, msg, details = {}) {
   return this.log('warning', type, msg, column);
 };
 
-Reporter.prototype.error = function(type, msg, err) {
+Reporter.prototype.error = function(type, msg, details = {}) {
 
-  const relativeColumn = err ? err.column || err.location.start.column : 0;
+  const relativeColumn = details.column || 0;
 
-  let column = 0,
-  keyPos, linePos, valPos;
+  let column = relativeColumn,
+  keyPos, line, linePos, valPos;
 
   if (this.string) {
     const cleanTarget = this.target
@@ -101,12 +102,12 @@ Reporter.prototype.error = function(type, msg, err) {
       }
     }
   }
-
-  const issue = this.log('error', type, msg, column);
-  if (build) {
-    throw err || msg;
+  else if (type === 'json-parse' || type === 'json-parse-fatal') {
+    line = this.fileContents.substring(0, relativeColumn).split('\n').length;
+    column = relativeColumn - this.fileContents.substring(0, relativeColumn).lastIndexOf('\n');
   }
-  return issue;
+
+  return this.log('error', type, msg, column, line);
 };
 
 module.exports = { Reporter };
