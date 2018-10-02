@@ -24,4 +24,4 @@ const issues = validateLocales({
   sourceLocale: 'en'
 });
 
-console.log(JSON.stringify(issues, null, 2));
+console.log(JSON.stringify(issues, null, 2)); // eslint-disable-line no-console

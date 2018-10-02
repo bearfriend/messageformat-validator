@@ -24,16 +24,26 @@ function validateLocales({ locales, sourceLocale }) {
   //const finalReport = {};
 
   let sourceStrings;
+  let _error;
 
   try {
     sourceStrings = JSON.parse(locales[sourceLocale]);
   }
   catch(e) {
-    return [{
-      locale: sourceLocale,
-      parsed: false,
-      _error: e
-    }];
+
+    try {
+      sourceStrings = JSON.parse(locales[sourceLocale].trim());
+    }
+    catch(ee) {
+      return [{
+        locale: sourceLocale,
+        parsed: false,
+        _error: ee
+      }];
+    }
+
+    _error = e;
+
   }
 
   return Object.keys(locales).map((targetLocale) => {
@@ -101,12 +111,18 @@ function validateLocales({ locales, sourceLocale }) {
     });
     */
 
-    return {
+    const response = {
       locale: targetLocale,
       issues: reporter.issues || [],
       report: reporter.report,
       parsed: true
     }
+
+    if (_error) {
+      response._error = _error;
+    }
+
+    return response;
 
   });
 
