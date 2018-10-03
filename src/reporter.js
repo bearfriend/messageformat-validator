@@ -13,8 +13,9 @@ function Reporter(locale, fileContents) {
 
 Reporter.prototype.config = function({ key, targetString, sourceString }) {
   this.key = key;
-  if (targetString) this.target = targetString.replace(/\n/g, '\n');
-  this.source = sourceString.replace(/\n/g, '\n');
+
+  if (typeof targetString !== "undefined") this.target = targetString.replace(/\n/g, '\n');
+  if (typeof sourceString !== "undefined") this.source = sourceString.replace(/\n/g, '\n');
 };
 
 Reporter.prototype.log = function(level, type, msg, column = 0, line) {

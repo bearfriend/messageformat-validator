@@ -77,7 +77,8 @@ function validateLocales({ locales, sourceLocale }) {
       checkedKeys.push(key);
 
       const target = targetStrings[key];//.replace(/\n/g,'\\n');
-      const sourceString = sourceStrings[key];//.replace(/\n/g,'\\n');
+      const sourceString = sourceStrings[key] || '';//.replace(/\n/g,'\\n');
+
       let targetOptions = {},
         targetString;
 
@@ -90,6 +91,8 @@ function validateLocales({ locales, sourceLocale }) {
       }
 
       reporter.config({ key, targetString, sourceString });
+
+      if (!sourceString) reporter.error('extraneous', 'This string does not exist in the source file.');
 
       validateString({
         targetString,
@@ -105,7 +108,7 @@ function validateLocales({ locales, sourceLocale }) {
 
     if (missingKeys.length) {
       missingKeys.forEach((key) => {
-        reporter.config({ key, sourceString: sourceStrings[key] });
+        reporter.config({ key, sourceString: sourceStrings[key], targetString: '' });
         reporter.error('missing', `String missing from locale file.`)
       })
     }
