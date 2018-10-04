@@ -137,10 +137,6 @@ function validateLocales({ locales, sourceLocale }) {
 
 function validateString({ targetString, targetLocale, targetOptions, sourceString, sourceLocale }) {
 
-  if (targetString.indexOf(String.fromCharCode(10)) > -1) {
-    reporter.warning('newline', 'String contains newline(s), which are unnecessary and may affect error position reporting.');
-  }
-
   if (sourceLocale
     && targetLocale !== sourceLocale
     && targetString === sourceString) {
@@ -200,6 +196,7 @@ function validateString({ targetString, targetLocale, targetOptions, sourceStrin
       reporter.error('argument', `Unrecognized arguments ${JSON.stringify(argDiff)}`);
     }
 
+    /*
     const nbspPos = targetString
       .replace(/\n/g, '\\n')
       .replace(/"/, '\\"')
@@ -207,6 +204,20 @@ function validateString({ targetString, targetLocale, targetOptions, sourceStrin
     if (nbspPos > -1) {
       reporter.warning('nbsp', `String contains a non-breaking space at column ${nbspPos}.`, { column: nbspPos });
     }
+    */
+
+
+    const stringTokens = [];
+    targetTokens.forEach((token) => {
+      if (typeof token === 'string') {
+        stringTokens.push(token);
+      }
+    });
+    const regx = new RegExp(stringTokens.join('|'), 'g');
+    if (targetString.replace(regx, '').indexOf(String.fromCharCode(10)) > -1) {
+      reporter.warning('newline', 'String contains unnecessary newline(s).');
+    }
+
 
     if (targetMap.cases.join(',') !== sourceMap.cases.join(',')) {
       const caseDiff = Array.from(targetMap.cases).filter(arg => !Array.from(sourceMap.cases).includes(arg));
