@@ -206,14 +206,7 @@ function validateString({ targetString, targetLocale, targetOptions, sourceStrin
     }
     */
 
-
-    const stringTokens = [];
-    targetTokens.forEach((token) => {
-      if (typeof token === 'string') {
-        stringTokens.push(token);
-      }
-    });
-    const regx = new RegExp(stringTokens.join('|'), 'g');
+    const regx = new RegExp(targetMap.stringTokens.map(t => t.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|'), 'g');
     if (targetString.replace(regx, '').indexOf(String.fromCharCode(10)) > -1) {
       reporter.warning('newline', 'String contains unnecessary newline(s).');
     }
@@ -243,7 +236,7 @@ function validateString({ targetString, targetLocale, targetOptions, sourceStrin
   }
 }
 
-function _map(tokens, partsMap = { flatMap: [], arguments: new Set(), cases: [] }) {
+function _map(tokens, partsMap = { flatMap: [], arguments: new Set(), cases: [], stringTokens: [] }) {
 
   tokens.forEach((token) => {
 
@@ -272,6 +265,9 @@ function _map(tokens, partsMap = { flatMap: [], arguments: new Set(), cases: [] 
           _map(case_.tokens, partsMap);
         });
       }
+    }
+    else {
+      partsMap.stringTokens.push(token);
     }
 
   });
