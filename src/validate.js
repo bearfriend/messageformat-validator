@@ -196,21 +196,19 @@ function validateString({ targetString, targetLocale, targetOptions, sourceStrin
       reporter.error('argument', `Unrecognized arguments ${JSON.stringify(argDiff)}`);
     }
 
-    /*
-    const nbspPos = targetString
-      .replace(/\n/g, '\\n')
-      .replace(/"/, '\\"')
-      .indexOf(String.fromCharCode(160));
-    if (nbspPos > -1) {
-      reporter.warning('nbsp', `String contains a non-breaking space at column ${nbspPos}.`, { column: nbspPos });
-    }
-    */
-
+    // remove all translated content, leaving only the messageformat structure
     const regx = new RegExp(targetMap.stringTokens.map(t => t.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|'), 'g');
-    if (targetString.replace(regx, '').indexOf(String.fromCharCode(10)) > -1) {
-      reporter.warning('newline', 'String contains unnecessary newline(s).');
+    const structure = targetString.replace(regx, m => Array(m.length).fill(' ').join('')); // eslint-disable-line newline-per-chained-call
+
+    const newlinePos = structure.indexOf(String.fromCharCode(10));
+    if (newlinePos > -1) {
+      reporter.warning('newline', 'String contains unnecessary newline(s).', { column: newlinePos });
     }
 
+    const nbspPos = structure.indexOf(String.fromCharCode(160));
+    if (nbspPos > -1) {
+      reporter.error('nbsp', `String contains invalid non-breaking space at position ${nbspPos}.`, { column: nbspPos });
+    }
 
     if (targetMap.cases.join(',') !== sourceMap.cases.join(',')) {
       const caseDiff = Array.from(targetMap.cases).filter(arg => !Array.from(sourceMap.cases).includes(arg));
