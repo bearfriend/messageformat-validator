@@ -137,9 +137,11 @@ function validateLocales({ locales, sourceLocale }) {
 
 function validateString({ targetString, targetLocale, targetOptions, sourceString, sourceLocale }) {
 
+  const re = /[\u2000-\u206F\u2E00-\u2E7F\n\r\\'!"#$%&()*+,\-.\/:;<=>?@\[\]^_`{|}~]/g; // eslint-disable-line
+
   if (sourceLocale
     && targetLocale !== sourceLocale
-    && targetString === sourceString) {
+    && targetString.replace(re,'') === sourceString.replace(re,'')) {
 
     const sourceHash = crypto
       .createHash('sha1')
