@@ -15,6 +15,7 @@ const { validateLocales } = require('../src/validate');
 
 commander
   .version('0.0.22')
+  .option('-e, --throw-errors', 'Throw an error if error issues are found')
   .option('--no-issues', 'Don\'t output issues')
   .option('-l, --locales <items>', 'Process only these comma-separated locales', val => val.split(','))
   .option('-p, --path [path]', 'Path to a directory containing locale files')
@@ -50,5 +51,14 @@ fs.readdir(absLocalesPath, (err, files) => {
       const json = JSON.stringify(noIssuesOutput, null, 2);
       console.log(json);
     }
+
+    if (commander.throwErrors && output.some((locale) => locale.report.totals.errors)) {
+      throw new Error('Errors were reported in at least one locale. See details above.');
+    }
+
+  })
+  .catch((errAll) => {
+    console.error(errAll);
+    process.exitCode = 1;
   });
 });
