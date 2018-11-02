@@ -10,11 +10,12 @@ const readFile = promisify(fs.readFile);
 const commander = require('commander');
 const findConfig = require('find-config');
 const configPath = findConfig('mfv.config.json');
+const { version } = require('../package.json');
 const { localesPath, sourceLocale } = require(configPath);
 const { validateLocales } = require('../src/validate');
 
 commander
-  .version('0.0.22')
+  .version(version)
   .option('-e, --throw-errors', 'Throw an error if error issues are found')
   .option('--no-issues', 'Don\'t output issues')
   .option('-l, --locales <items>', 'Process only these comma-separated locales', val => val.split(','))
