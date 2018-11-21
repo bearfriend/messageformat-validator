@@ -45,7 +45,7 @@ fs.readdir(absLocalesPath, (err, files) => {
     const translatorOutput = {};
 
     output.forEach((locale, idx) => {
-      if (commander.locales.includes(locale.locale)) {
+      if (!commander.locales || commander.locales.includes(locale.locale)) {
         console.log((idx > 0 ? '\n' : '') + chalk.underline(`${absLocalesPath}${locale.locale}.json`));
         if (commander.issues) {
           locale.issues.forEach((issue) => {
