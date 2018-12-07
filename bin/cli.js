@@ -19,13 +19,15 @@ commander
   .version(version)
   .option('-e, --throw-errors', 'Throw an error if error issues are found')
   .option('--no-issues', 'Don\'t output issues')
-  .option('-l, --locales <items>', 'Process only these comma-separated locales', val => val.split(','))
-  .option('-p, --path [path]', 'Path to a directory containing locale files')
+  .option('-l, --locales <locales>', 'Process only these comma-separated locales', val => val.split(','))
+  .option('-p, --path <path>', 'Path to a directory containing locale files')
+  .option('-s, --source <locale>', 'The locale to use as the source (e.g. en)')
   .option('-t, --translator-output', 'Output JSON of all source strings that are missing or untranslated in the target')
   .parse(process.argv);
 
 
-const localesPath = path || commander.path;
+const sourceLocale = commander.source || source;
+const localesPath = commander.path || path;
 const absLocalesPath = `${process.cwd()}/${localesPath}`;
 
 fs.readdir(absLocalesPath, (err, files) => {
@@ -41,7 +43,7 @@ fs.readdir(absLocalesPath, (err, files) => {
       return acc;
     }, {});
 
-    const output = validateLocales({ locales, sourceLocale: source });
+    const output = validateLocales({ locales, sourceLocale });
     const translatorOutput = {};
 
     output.forEach((locale, idx) => {
