@@ -2,7 +2,7 @@
 
 const crypto = require('crypto');
 const parse = require('messageformat-parser').parse;
-const pluralCats = require('make-plural/umd/pluralCategories');
+const pluralCats = require('make-plural/pluralCategories');
 const { Reporter } = require('./reporter');
 
 //const build = process.env.BUILD;//process.argv.includes('--build');
