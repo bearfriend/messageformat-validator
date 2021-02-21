@@ -7,19 +7,22 @@
 const fs = require('fs');
 const { promisify } = require('util');
 const chalk = require('chalk');
+const glob = require("glob");
 const readFile = promisify(fs.readFile);
 const { program } = require('commander');
 const findConfig = require('find-config');
 const configPath = findConfig('mfv.config.json');
 const { version } = require('../package.json');
-const { path, source: configSource } = require(configPath);
+const { path, source: globalSource, locales: globalLocales } = configPath ? require(configPath) : {};
 const { validateLocales } = require('../src/validate');
+
+require = require('esm')(module) // eslint-disable-line
 
 program
   .version(version)
   .option('-e, --throw-errors', 'Throw an error if error issues are found')
   .option('--no-issues', 'Don\'t output issues')
-  .option('-l, --locales <items>', 'Process only these comma-separated locales', val => val.split(','))
+  .option('-l, --locales <items>', 'Process only these comma-separated locales')
   .option('-p, --path <path>', 'Path to a directory containing locale files')
   .option('-t, --translator-output', 'Output JSON of all source strings that are missing or untranslated in the target')
   .option('-s, --source-locale <locale>', 'The locale to use as the source')
@@ -53,147 +56,227 @@ program
 
 program.parse(process.argv);
 
-const localesPath = program.path || path;
-const absLocalesPath = `${process.cwd()}/${localesPath}`;
+const localesPaths = glob.sync(program.path || path);
+localesPaths.forEach(localesPath => {
 
-fs.readdir(absLocalesPath, (err, files) => {
-  if (err) {
-    console.log(`Failed to read ${absLocalesPath}`);
-    return;
-  }
+  const absLocalesPath = `${process.cwd()}/${localesPath}`;
 
-  const sourceLocale = program.sourceLocale || configSource;
-  const filteredFiles = !program.locales ? files : files.filter(file => program.locales.includes(file.replace('.json', '')) || file === sourceLocale + '.json');
+  const subConfigPath = findConfig('mfv.config.json', { cwd: absLocalesPath });
 
-  Promise.all(filteredFiles.map((file) => readFile(absLocalesPath + file, 'utf8')))
-  .then((res) => {
-    const locales = res.reduce((acc, json, idx) => {
-      acc[filteredFiles[idx].replace('.json','')] = json;
-      return acc;
-    }, {});
+  const { source, format = 'json', namedExport = 'default', locales: configLocales } = subConfigPath ? require(subConfigPath) : {}; /* eslint-disable-line global-require */
+  const ext = format.split('-')[0];
 
-    const targetLocales = program.locales || filteredFiles.map(file => file.replace('.json', ''));
-
-    if (program.removeExtraneous) {
-      console.log('Removing extraneous strings from:', targetLocales.join(', '));
+  fs.readdir(absLocalesPath, (err, files) => {
+    if (err) {
+      console.log(`Failed to read ${absLocalesPath}`);
+      return;
     }
 
-    if (program.addMissing) {
-      console.log('Adding missing strings to:', targetLocales.join(', '));
-    }
+    const sourceLocale = program.sourceLocale || source || globalSource;
+    const allowedLocalesString = program.locales || configLocales || globalLocales;
+    const allowedLocales = allowedLocalesString && allowedLocalesString.split(',');
+    const filteredFiles = !allowedLocales ? files : files.filter(file => allowedLocales.includes(file.replace(`.${ext}`, '')) || file === sourceLocale + `.${ext}`);
 
-    if (program.rename) {
-      console.log(`Renaming "${program.oldKey}" to "${program.newKey}" in:`, targetLocales.join(', '));
-      let count = 0;
-      Object.keys(locales).forEach((locale, idx) => {
-        if (!program.locales || program.locales.includes(locale)) {
+    Promise.all(filteredFiles.map(file => readFile(absLocalesPath + file, 'utf8')))
+    .then((res) => {
+      const locales = res.reduce((acc, contents, idx) => {
+        const locale = filteredFiles[idx].replace(`.${ext}`,'');
+        acc[locale] = {
+          contents,
+          parsed: ext === 'js' && require(absLocalesPath + filteredFiles[idx])[namedExport] /* eslint-disable-line global-require */
+        };
+        acc[locale].comments = {};
+        Object.keys(acc[locale].parsed).forEach(key => {
+          const match = new RegExp(`${key}["']?\\s?:\\s?".+?",?(?<comment>.*)`);
+          acc[locale].comments[key] = acc[locale].contents.match(match).groups.comment;
+        })
+        return acc;
+      }, {});
 
-          const target = `   "${program.oldKey}" : "`;
+      const targetLocales = filteredFiles.map(file => file.replace(`.${ext}`, ''));
 
-          if (locales[locale].includes(target)) {
-            count = count + 1;
-            const localeJSON = locales[locale].replace(target, `   "${program.newKey}" : "`);
-            fs.writeFileSync(absLocalesPath + locale + '.json', localeJSON);
-            console.log(`${chalk.green('\u2714')} ${locale}.json - Renamed`);
+      if (program.removeExtraneous) {
+        console.log('Removing extraneous strings from:', targetLocales.join(', '));
+      }
+
+      if (program.addMissing) {
+        console.log('Adding missing strings to:', targetLocales.join(', '));
+      }
+
+      if (program.rename) {
+        console.log(`Renaming "${program.oldKey}" to "${program.newKey}" in:`, targetLocales.join(', '));
+        let count = 0;
+        Object.keys(locales).forEach((locale) => {
+          if (!allowedLocales || allowedLocales.includes(locale)) {
+
+            const target1 = `"${program.oldKey}" : "`;
+            const target2 = `"${program.oldKey}": "`;
+            const target3 = `${program.oldKey} : "`;
+            const target4 = `${program.oldKey}: "`;
+
+            const target = new RegExp(`${target1}|${target2}|${target3}|${target4}`);
+
+            const localeContents = locales[locale].contents;
+            if (localeContents.match(target)) {
+              count += 1;
+              let newLocaleContents;
+              switch(format) {
+                case 'js':
+                newLocaleContents = localeContents.replace(target, `${program.newKey}: "`);
+                break;
+
+                case 'js-single-quoted':
+                newLocaleContents = localeContents.replace(target, `'${program.newKey}': "`);
+                break;
+
+                case "json":
+                newLocaleContents = localeContents.replace(target, `"${program.newKey}" : "`);
+                break;
+
+                case "js-quoted":
+                newLocaleContents = localeContents.replace(target, `"${program.newKey}": "`);
+                break;
+              }
+
+              fs.writeFileSync(absLocalesPath + locale + `.${ext}`, newLocaleContents);
+              console.log(`${chalk.green('\u2714')} ${locale}.${ext} - Renamed`);
+            }
+            else {
+              console.log(`${chalk.red('\u2716')} ${locale}.${ext} - Missing`);
+            }
+          }
+        });
+
+        const cliReport = `\n ${chalk.green('\u2714')} Renamed ${count} strings`;
+        console.log(cliReport);
+
+        return;
+      }
+
+      const output = validateLocales({ locales, sourceLocale });
+      const translatorOutput = {};
+
+      output.forEach((locale, idx) => {
+        const localePath = `${absLocalesPath}${locale.locale}.${ext}`;
+
+        if (!allowedLocales || allowedLocales.includes(locale.locale)) {
+          console.log((idx > 0 ? '\n' : '') + chalk.underline(`${absLocalesPath}${locale.locale}.${ext}`));
+          if (program.issues) {
+            const { [namedExport]: localeStrings } = require(localePath); /* eslint-disable-line global-require */
+            const { [namedExport]: sourceStrings } = require(`${absLocalesPath}${sourceLocale}.${ext}`); /* eslint-disable-line global-require */
+            //const localeStrings = format === 'json' ? JSON.parse(locales[locale.locale]) : locales[locale.locale];
+            //const sourceStrings = format === 'json' ? JSON.parse(locales[sourceLocale]) : locales[sourceLocale];
+            if (ext === 'json') console.log(localeStrings || 'WHOOPS!');
+            locale.issues.forEach((issue) => {
+              if (program.removeExtraneous) {
+                if (issue.type === 'extraneous') {
+                  Reflect.deleteProperty(localeStrings, issue.key);
+                  console.log('Removed:', issue.key);
+                }
+
+              }
+              else if (program.addMissing) {
+                if (issue.type === 'missing') {
+                  localeStrings[issue.key] = sourceStrings[issue.key];
+                  console.log('Added:', issue.key);
+                }
+              }
+              else if (program.translatorOutput) {
+                if (['missing', 'untranslated'].includes(issue.type)) {
+                  translatorOutput[issue.key] = issue.source;
+                }
+              }
+              else {
+                console.log(
+                  '  ' + chalk.grey(`${issue.line}:${issue.column}`) +
+                  '  ' + chalk[issue.level == 'error' ? 'red' : 'yellow'](issue.level) +
+                  ' ' + chalk.grey(issue.type) +
+                  '  ' + chalk.cyan(issue.key) +
+                  '  ' + chalk.white(issue.msg)
+                );
+              }
+            });
+
+            if (program.removeExtraneous || program.addMissing || program.sort) {
+              const keys = Object.keys(localeStrings);
+              const sortedLocale = keys.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+                .reduce((acc, k) => {
+                  acc[k] = localeStrings[k];
+                  return acc;
+                }, {});
+              let newLocaleContents = JSON.stringify(sortedLocale, null, ext === 'js' ? 2 : 3);
+
+              newLocaleContents.replace();
+
+              const formatJS = contents => {
+                return contents.replace(/"(.+)":(.*)/g, (line, key) => {
+                  return line.replace(/".+":/g, `${key}:`) + locales[sourceLocale].comments[key];
+                });
+              };
+
+              const exportPrefix = `export ${namedExport === 'default' ? 'default' : `const ${namedExport} =`}`;
+              //const contextComment = '';
+              switch(format) {
+                case 'js':
+                newLocaleContents = `${exportPrefix} ${formatJS(newLocaleContents)}`;
+                break;
+
+                case "js-quoted":
+                newLocaleContents = `${exportPrefix} ${newLocaleContents}`
+                break;
+
+                case 'js-single-quoted':
+                newLocaleContents = `${exportPrefix} ${newLocaleContents.replace(/"(.+)":/g, "'$1:'")}`;
+                break;
+
+                case "json":
+                newLocaleContents = newLocaleContents.replace(/": "/g, '" : "');
+                break;
+
+                default:
+                break;
+              }
+
+              fs.writeFileSync(localePath, newLocaleContents + '\n');
+            }
+          }
+
+          if (program.translatorOutput) {
+            console.log(JSON.stringify(translatorOutput, null, 2));
+          }
+
+          if (program.removeExtraneous || program.addMissing) {
+            if (program.removeExtraneous) {
+              const count = locale.report.errors ? locale.report.errors.extraneous || 0 : 0;
+              const cliReport = `\n ${chalk.green('\u2714')} Removed ${count} extraneous strings`;
+              console.log(cliReport);
+            }
+            if (program.addMissing) {
+              const count = locale.report.errors ? locale.report.errors.missing || 0 : 0;
+              const cliReport = `\n ${chalk.green('\u2714')} Added ${count} missing strings`;
+              console.log(cliReport);
+            }
+          }
+          else if (locale.report.totals.errors || locale.report.totals.warnings) {
+            const color = locale.report.totals.errors ? 'red' : 'yellow';
+            const total = locale.report.totals.errors + locale.report.totals.warnings;
+            const cliReport = chalk[color](`\n\u2716 ${total} issues (${locale.report.totals.errors} errors, ${locale.report.totals.warnings} warnings)`);
+            console.log(cliReport);
           }
           else {
-            console.log(`${chalk.red('\u2716')} ${locale}.json - Missing`);
+            const cliReport = `\n ${chalk.green('\u2714')} Passed`;
+            console.log(cliReport);
           }
         }
       });
 
-      const cliReport = `\n ${chalk.green('\u2714')} Renamed ${count} strings`;
-      console.log(cliReport);
-
-      return;
-    }
-
-    const output = validateLocales({ locales, sourceLocale });
-    const translatorOutput = {};
-
-    output.forEach((locale, idx) => {
-      if (!program.locales || program.locales.includes(locale.locale)) {
-        console.log((idx > 0 ? '\n' : '') + chalk.underline(`${absLocalesPath}${locale.locale}.json`));
-        if (program.issues) {
-
-          const localeStrings = JSON.parse(locales[locale.locale]);
-          const sourceStrings = JSON.parse(locales[sourceLocale]);
-          locale.issues.forEach((issue) => {
-            if (program.removeExtraneous) {
-              if (issue.type === 'extraneous') {
-                delete localeStrings[issue.key];
-                console.log('Removed:', issue.key);
-              }
-
-            }
-            else if (program.addMissing) {
-              if (issue.type === 'missing') {
-                localeStrings[issue.key] = sourceStrings[issue.key];
-                console.log('Added:', issue.key);
-              }
-            }
-            else if (program.translatorOutput) {
-              if (['missing', 'untranslated'].includes(issue.type)) {
-                translatorOutput[issue.key] = issue.source;
-              }
-            }
-            else {
-              console.log(
-                '  ' + chalk.grey(`${issue.line}:${issue.column}`) +
-                '  ' + chalk[issue.level == 'error' ? 'red' : 'yellow'](issue.level) +
-                ' ' + chalk.grey(issue.type) +
-                '  ' + chalk.cyan(issue.key) +
-                '  ' + chalk.white(issue.msg)
-              );
-            }
-          });
-
-          if (program.removeExtraneous || program.addMissing) {
-            const sortedLocale = Object.keys(localeStrings).sort()
-              .reduce((acc, k) => {
-                acc[k] = localeStrings[k];
-                return acc;
-              }, {});
-            const localeJSON = JSON.stringify(sortedLocale, null, 3).replace(/": "/g, '" : "');
-            fs.writeFileSync(absLocalesPath + locale.locale + '.json', localeJSON + '\n');
-          }
-        }
-
-        if (program.translatorOutput) {
-          console.log(JSON.stringify(translatorOutput, null, 2));
-        }
-
-        if (program.removeExtraneous || program.addMissing) {
-          if (program.removeExtraneous) {
-            const count = locale.report.errors ? locale.report.errors.extraneous || 0 : 0;
-            const cliReport = `\n ${chalk.green('\u2714')} Removed ${count} extraneous strings`;
-            console.log(cliReport);
-          }
-          if (program.addMissing) {
-            const count = locale.report.errors ? locale.report.errors.missing || 0 : 0;
-            const cliReport = `\n ${chalk.green('\u2714')} Added ${count} missing strings`;
-            console.log(cliReport);
-          }
-        }
-        else if (locale.report.totals.errors || locale.report.totals.warnings) {
-          const color = locale.report.totals.errors ? 'red' : 'yellow';
-          const total = locale.report.totals.errors + locale.report.totals.warnings;
-          const cliReport = chalk[color](`\n\u2716 ${total} issues (${locale.report.totals.errors} errors, ${locale.report.totals.warnings} warnings)`);
-          console.log(cliReport);
-        }
-        else {
-          const cliReport = `\n ${chalk.green('\u2714')} Passed`;
-          console.log(cliReport);
-        }
+      if (program.throwErrors && output.some((locale) => locale.report.totals.errors)) {
+        throw new Error('Errors were reported in at least one locale. See details above.');
       }
+    })
+    .catch((errAll) => {
+      console.error(errAll);
+      process.exitCode = 1;
     });
-
-    if (program.throwErrors && output.some((locale) => locale.report.totals.errors)) {
-      throw new Error('Errors were reported in at least one locale. See details above.');
-    }
-  })
-  .catch((errAll) => {
-    console.error(errAll);
-    process.exitCode = 1;
   });
 });
