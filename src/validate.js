@@ -26,7 +26,7 @@ function validateLocales({ locales, sourceLocale }) {
   let sourceStrings;
 
   try {
-    sourceStrings = JSON.parse(locales[sourceLocale]);
+    sourceStrings = locales[sourceLocale].parsed || JSON.parse(locales[sourceLocale].contents);
   }
   catch(e) {
     return [{
@@ -38,16 +38,16 @@ function validateLocales({ locales, sourceLocale }) {
 
   return Object.keys(locales).map((targetLocale) => {
 
-    reporter = new Reporter(targetLocale, locales[targetLocale]);
+    reporter = new Reporter(targetLocale, locales[targetLocale].contents);
 
     let targetStrings;
     try {
-      targetStrings = JSON.parse(locales[targetLocale]);
+      targetStrings = locales[targetLocale].parsed || JSON.parse(locales[targetLocale].contents);
     }
     catch(e) {
 
       try {
-        targetStrings = JSON.parse(locales[targetLocale].trim());
+        targetStrings = JSON.parse(locales[targetLocale].contents.trim());
       }
       catch(ee) {
 
