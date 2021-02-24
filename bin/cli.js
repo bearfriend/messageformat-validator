@@ -22,6 +22,7 @@ program
   .version(version)
   .option('-e, --throw-errors', 'Throw an error if error issues are found')
   .option('--no-issues', 'Don\'t output issues')
+  .option('-i, --ignoreIssueTypes <items>', 'Ignore these comma-separated issue types')
   .option('-l, --locales <items>', 'Process only these comma-separated locales')
   .option('-p, --path <path>', 'Path to a directory containing locale files')
   .option('-t, --translator-output', 'Output JSON of all source strings that are missing or untranslated in the target')
@@ -164,9 +165,9 @@ localesPaths.forEach(localesPath => {
           if (program.issues) {
             const { [namedExport]: localeStrings } = require(localePath); /* eslint-disable-line global-require */
             const { [namedExport]: sourceStrings } = require(`${absLocalesPath}${sourceLocale}.${ext}`); /* eslint-disable-line global-require */
-            //const localeStrings = format === 'json' ? JSON.parse(locales[locale.locale]) : locales[locale.locale];
-            //const sourceStrings = format === 'json' ? JSON.parse(locales[sourceLocale]) : locales[sourceLocale];
-            if (ext === 'json') console.log(localeStrings || 'WHOOPS!');
+
+            locale.report.totals.ignored = 0;
+
             locale.issues.forEach((issue) => {
               if (program.removeExtraneous) {
                 if (issue.type === 'extraneous') {
@@ -186,7 +187,7 @@ localesPaths.forEach(localesPath => {
                   translatorOutput[issue.key] = issue.source;
                 }
               }
-              else {
+              else if (!program.ignoreIssueTypes || !program.ignoreIssueTypes.replace(' ','').split(',').includes(issue.type)) {
                 console.log(
                   '  ' + chalk.grey(`${issue.line}:${issue.column}`) +
                   '  ' + chalk[issue.level == 'error' ? 'red' : 'yellow'](issue.level) +
@@ -194,6 +195,9 @@ localesPaths.forEach(localesPath => {
                   '  ' + chalk.cyan(issue.key) +
                   '  ' + chalk.white(issue.msg)
                 );
+              }
+              else {
+                locale.report.totals.ignored += 1;
               }
             });
 
@@ -260,8 +264,11 @@ localesPaths.forEach(localesPath => {
           else if (locale.report.totals.errors || locale.report.totals.warnings) {
             const color = locale.report.totals.errors ? 'red' : 'yellow';
             const total = locale.report.totals.errors + locale.report.totals.warnings;
-            const cliReport = chalk[color](`\n\u2716 ${total} issues (${locale.report.totals.errors} errors, ${locale.report.totals.warnings} warnings)`);
+            const cliReport = chalk[color](`\n\u2716 ${total} issues (${locale.report.totals.errors} errors, ${locale.report.totals.warnings} warnings)${ locale.report.totals.ignored ? chalk.grey(` - ${locale.report.totals.ignored} Ignored`) : ''}`);
             console.log(cliReport);
+            if (locale.report.totals.ignored) {
+              
+            }
           }
           else {
             const cliReport = `\n ${chalk.green('\u2714')} Passed`;
