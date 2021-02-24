@@ -266,9 +266,6 @@ localesPaths.forEach(localesPath => {
             const total = locale.report.totals.errors + locale.report.totals.warnings;
             const cliReport = chalk[color](`\n\u2716 ${total} issues (${locale.report.totals.errors} errors, ${locale.report.totals.warnings} warnings)${ locale.report.totals.ignored ? chalk.grey(` - ${locale.report.totals.ignored} Ignored`) : ''}`);
             console.log(cliReport);
-            if (locale.report.totals.ignored) {
-              
-            }
           }
           else {
             const cliReport = `\n ${chalk.green('\u2714')} Passed`;

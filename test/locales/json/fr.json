@@ -1,7 +1,0 @@
-{
-  "last_accessed_at" : "{date] laatste toegang",
-  "course_selection_max_message" : "U kunt maximaal {limit} cursussen in een keer toewijzen.",
-  "people_count": "{gender, select, male {{count, plural, one {A man} other {{count} men} }} female {{count, plural, one {A woman} other {{count} women} }} other {{count, plural, one {A person} other {{count} people} }}}",
-  "confirm_enroll_info" : "{type, select, many_many {many_many} many_one {se inscribirán en {selected}} one_many {{affected} se inscribirán en los siguientes cursos} one_one {{affected} se inscribirá en {selected}.} ninguno {none}}",
-  "confirm_assignment_course_info" : "{userList} {type, select, many_many {se asignarán a los siguientes {count} cursos} many_one {se asignará {selected}.} one_many {{affected} a los siguientes {count} cursos} one_one {{affected} se asignará {selected}.} none {Agregar cursos}}"
-}
