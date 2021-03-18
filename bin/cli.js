@@ -163,8 +163,10 @@ localesPaths.forEach(localesPath => {
         if (!allowedLocales || allowedLocales.includes(locale.locale)) {
           console.log((idx > 0 ? '\n' : '') + chalk.underline(`${absLocalesPath}${locale.locale}.${ext}`));
           if (program.issues) {
-            const { [namedExport]: localeStrings } = require(localePath); /* eslint-disable-line global-require */
-            const { [namedExport]: sourceStrings } = require(`${absLocalesPath}${sourceLocale}.${ext}`); /* eslint-disable-line global-require */
+            const JSONlocaleStrings = require(localePath); /* eslint-disable-line global-require */
+            const JSONsourceStrings = require(`${absLocalesPath}${sourceLocale}.${ext}`); /* eslint-disable-line global-require */
+            const { [namedExport]: localeStrings = JSONlocaleStrings } = JSONlocaleStrings;
+            const { [namedExport]: sourceStrings = JSONsourceStrings } = JSONsourceStrings;
 
             locale.report.totals.ignored = 0;
 
