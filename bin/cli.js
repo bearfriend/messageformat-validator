@@ -245,7 +245,7 @@ localesPaths.forEach(localesPath => {
                 break;
               }
 
-              fs.writeFileSync(localePath, newLocaleContents + '\n');
+              fs.writeFileSync(localePath, newLocaleContents + ';\n');
             }
           }
 
