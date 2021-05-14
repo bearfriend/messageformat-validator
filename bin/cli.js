@@ -226,15 +226,15 @@ localesPaths.forEach(localesPath => {
               //const contextComment = '';
               switch(format) {
                 case 'js':
-                newLocaleContents = `${exportPrefix} ${formatJS(newLocaleContents)}`;
+                newLocaleContents = `${exportPrefix} ${formatJS(newLocaleContents)};`;
                 break;
 
                 case "js-quoted":
-                newLocaleContents = `${exportPrefix} ${newLocaleContents}`
+                newLocaleContents = `${exportPrefix} ${newLocaleContents};`
                 break;
 
                 case 'js-single-quoted':
-                newLocaleContents = `${exportPrefix} ${newLocaleContents.replace(/"(.+)":/g, "'$1:'")}`;
+                newLocaleContents = `${exportPrefix} ${newLocaleContents.replace(/"(.+)":/g, "'$1:'")};`;
                 break;
 
                 case "json":
@@ -245,7 +245,7 @@ localesPaths.forEach(localesPath => {
                 break;
               }
 
-              fs.writeFileSync(localePath, newLocaleContents + ';\n');
+              fs.writeFileSync(localePath, newLocaleContents + '\n');
             }
           }
 
