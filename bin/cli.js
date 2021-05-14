@@ -77,7 +77,7 @@ localesPaths.forEach(localesPath => {
     const allowedLocalesString = program.locales || configLocales || globalLocales;
     const allowedLocales = allowedLocalesString && allowedLocalesString.split(',');
     const filteredFiles = !allowedLocales ?
-      files.filter(file => !(/(^|\/)\.[^\/\.]/g).test(file)) :
+      files.filter(file => !(/^\..*/g).test(file)) :
       files.filter(file => allowedLocales.includes(file.replace(`.${ext}`, '')) || file === sourceLocale + `.${ext}`);
 
     Promise.all(filteredFiles.map(file => readFile(absLocalesPath + file, 'utf8')))
