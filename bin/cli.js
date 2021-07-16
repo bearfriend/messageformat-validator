@@ -64,7 +64,7 @@ localesPaths.forEach(localesPath => {
 
   const subConfigPath = findConfig('mfv.config.json', { cwd: absLocalesPath });
 
-  const { source, format = 'json', namedExport = 'default', locales: configLocales } = subConfigPath ? require(subConfigPath) : {}; /* eslint-disable-line global-require */
+  const { source, format = 'json', locales: configLocales } = subConfigPath ? require(subConfigPath) : {}; /* eslint-disable-line global-require */
   const ext = format.split('-')[0];
 
   fs.readdir(absLocalesPath, (err, files) => {
@@ -81,18 +81,20 @@ localesPaths.forEach(localesPath => {
       files.filter(file => allowedLocales.includes(file.replace(`.${ext}`, '')) || file === sourceLocale + `.${ext}`);
 
     Promise.all(filteredFiles.map(file => readFile(absLocalesPath + file, 'utf8')))
-    .then((res) => {
+    .then(res => {
       const locales = res.reduce((acc, contents, idx) => {
         const locale = filteredFiles[idx].replace(`.${ext}`,'');
         acc[locale] = {
           contents,
-          parsed: ext === 'js' && require(absLocalesPath + filteredFiles[idx])[namedExport] /* eslint-disable-line global-require */
+          parsed: {}
         };
-        acc[locale].comments = {};
-        Object.keys(acc[locale].parsed).forEach(key => {
-          const match = new RegExp(`${key}["']?\\s?:\\s?".+?",?(?<comment>.*)`);
-          acc[locale].comments[key] = acc[locale].contents.match(match).groups.comment;
-        })
+        //            [  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][  value  ][        "        ][     ,    ][ // comment ]
+        const regex = /\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s?):(?<valSpace>\s?)(?<valQuote>["'`])(?<val>.*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g;
+        const matches = Array.from(contents.matchAll(regex));//.map(m => m.groups);
+
+        matches.forEach(match => {
+          acc[locale].parsed[match.groups.key] = Object.assign(String(match[0]), match.groups);
+        });
         return acc;
       }, {});
 
@@ -112,34 +114,15 @@ localesPaths.forEach(localesPath => {
         Object.keys(locales).forEach((locale) => {
           if (!allowedLocales || allowedLocales.includes(locale)) {
 
-            const target1 = `"${program.oldKey}" : "`;
-            const target2 = `"${program.oldKey}": "`;
-            const target3 = `${program.oldKey} : "`;
-            const target4 = `${program.oldKey}: "`;
-
-            const target = new RegExp(`${target1}|${target2}|${target3}|${target4}`);
-
             const localeContents = locales[locale].contents;
-            if (localeContents.match(target)) {
+
+            const t = locales[locale].parsed[program.oldKey];
+            const old = `${t.keyQuote}${t.key}${t.keyQuote}${t.keySpace}:${t.valSpace}${t.valQuote}${t.val}`;
+            const noo = `${t.keyQuote}${program.newKey}${t.keyQuote}${t.keySpace}:${t.valSpace}${t.valQuote}${t.val}`;
+
+            if (localeContents.includes(old)) {
               count += 1;
-              let newLocaleContents;
-              switch(format) {
-                case 'js':
-                newLocaleContents = localeContents.replace(target, `${program.newKey}: "`);
-                break;
-
-                case 'js-single-quoted':
-                newLocaleContents = localeContents.replace(target, `'${program.newKey}': "`);
-                break;
-
-                case "json":
-                newLocaleContents = localeContents.replace(target, `"${program.newKey}" : "`);
-                break;
-
-                case "js-quoted":
-                newLocaleContents = localeContents.replace(target, `"${program.newKey}": "`);
-                break;
-              }
+              const newLocaleContents = localeContents.replace(t, noo);
 
               fs.writeFileSync(absLocalesPath + locale + `.${ext}`, newLocaleContents);
               console.log(`${chalk.green('\u2714')} ${locale}.${ext} - Renamed`);
@@ -165,24 +148,30 @@ localesPaths.forEach(localesPath => {
         if (!allowedLocales || allowedLocales.includes(locale.locale)) {
           console.log((idx > 0 ? '\n' : '') + chalk.underline(`${absLocalesPath}${locale.locale}.${ext}`));
           if (program.issues) {
-            const JSONlocaleStrings = require(localePath); /* eslint-disable-line global-require */
-            const JSONsourceStrings = require(`${absLocalesPath}${sourceLocale}.${ext}`); /* eslint-disable-line global-require */
-            const { [namedExport]: localeStrings = JSONlocaleStrings } = JSONlocaleStrings;
-            const { [namedExport]: sourceStrings = JSONsourceStrings } = JSONsourceStrings;
 
             locale.report.totals.ignored = 0;
 
             locale.issues.forEach((issue) => {
               if (program.removeExtraneous) {
                 if (issue.type === 'extraneous') {
-                  Reflect.deleteProperty(localeStrings, issue.key);
+                  locales[locale.locale].contents = locales[locale.locale].contents.replace(locales[locale.locale].parsed[issue.key], '')
                   console.log('Removed:', issue.key);
                 }
 
               }
               else if (program.addMissing) {
                 if (issue.type === 'missing') {
-                  localeStrings[issue.key] = sourceStrings[issue.key];
+                  const keys = Object.keys(locales[sourceLocale].parsed);
+                  const keyIdx = keys.indexOf(issue.key);
+                  const nextKey = keys[keyIdx + 1];
+                  const previousKey = keys[keyIdx - 1];
+                  const siblingString = locales[locale.locale].parsed[nextKey || previousKey];
+                  const contents = locales[locale.locale].contents;
+                  const insertAt = contents.indexOf(siblingString.split(':')[0]) + Number(!nextKey ? String(siblingString).length : 0);
+                  const comma = !nextKey && !siblingString.comma ? `,${siblingString.comment}` : '';
+                  const commaOffset = comma ? siblingString.comment.length : 0;
+                  const sourceString = `${comma}${locales[sourceLocale].parsed[issue.key]}`;
+                  locales[locale.locale].contents = [contents.slice(0, insertAt - commaOffset), sourceString, contents.slice(insertAt)].join('');
                   console.log('Added:', issue.key);
                 }
               }
@@ -205,47 +194,9 @@ localesPaths.forEach(localesPath => {
               }
             });
 
+            // todo: reimplement sort
             if (program.removeExtraneous || program.addMissing || program.sort) {
-              const keys = Object.keys(localeStrings);
-              const sortedLocale = keys.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
-                .reduce((acc, k) => {
-                  acc[k] = localeStrings[k];
-                  return acc;
-                }, {});
-              let newLocaleContents = JSON.stringify(sortedLocale, null, ext === 'js' ? 2 : 3);
-
-              newLocaleContents.replace();
-
-              const formatJS = contents => {
-                return contents.replace(/"(.+)":(.*)/g, (line, key) => {
-                  return line.replace(/".+":/g, `${key}:`) + locales[sourceLocale].comments[key];
-                });
-              };
-
-              const exportPrefix = `export ${namedExport === 'default' ? 'default' : `const ${namedExport} =`}`;
-              //const contextComment = '';
-              switch(format) {
-                case 'js':
-                newLocaleContents = `${exportPrefix} ${formatJS(newLocaleContents)};`;
-                break;
-
-                case "js-quoted":
-                newLocaleContents = `${exportPrefix} ${newLocaleContents};`
-                break;
-
-                case 'js-single-quoted':
-                newLocaleContents = `${exportPrefix} ${newLocaleContents.replace(/"(.+)":/g, "'$1:'")};`;
-                break;
-
-                case "json":
-                newLocaleContents = newLocaleContents.replace(/": "/g, '" : "');
-                break;
-
-                default:
-                break;
-              }
-
-              fs.writeFileSync(localePath, newLocaleContents + '\n');
+              fs.writeFileSync(localePath, locales[locale.locale].contents);
             }
           }
 
@@ -268,7 +219,7 @@ localesPaths.forEach(localesPath => {
           else if (locale.report.totals.errors || locale.report.totals.warnings) {
             const color = locale.report.totals.errors ? 'red' : 'yellow';
             const total = locale.report.totals.errors + locale.report.totals.warnings;
-            const cliReport = chalk[color](`\n\u2716 ${total} issues (${locale.report.totals.errors} errors, ${locale.report.totals.warnings} warnings)${ locale.report.totals.ignored ? chalk.grey(` - ${locale.report.totals.ignored} Ignored`) : ''}`);
+            const cliReport = chalk[color](`\n\u2716 ${total} issues (${locale.report.totals.errors} errors, ${locale.report.totals.warnings} warnings)${locale.report.totals.ignored ? chalk.grey(` - ${locale.report.totals.ignored} Ignored`) : ''}`);
             console.log(cliReport);
           }
           else {

@@ -26,7 +26,7 @@ function validateLocales({ locales, sourceLocale }) {
   let sourceStrings;
 
   try {
-    sourceStrings = locales[sourceLocale].parsed || JSON.parse(locales[sourceLocale].contents);
+    sourceStrings = locales[sourceLocale].parsed;
   }
   catch(e) {
     return [{
@@ -42,10 +42,10 @@ function validateLocales({ locales, sourceLocale }) {
 
     let targetStrings;
     try {
-      targetStrings = locales[targetLocale].parsed || JSON.parse(locales[targetLocale].contents);
+      targetStrings = locales[targetLocale].parsed;
     }
     catch(e) {
-
+      // todo: do this another way - currently never called
       try {
         targetStrings = JSON.parse(locales[targetLocale].contents.trim());
       }
@@ -76,19 +76,9 @@ function validateLocales({ locales, sourceLocale }) {
 
       checkedKeys.push(key);
 
-      const target = targetStrings[key];//.replace(/\n/g,'\\n');
-      const sourceString = sourceStrings[key] || '';//.replace(/\n/g,'\\n');
-
-      let targetOptions = {},
-        targetString;
-
-      if (Array.isArray(target)) {
-        targetString = target[0];
-        targetOptions = target[1];
-      }
-      else {
-        targetString = target;
-      }
+      //console.log(targetStrings);
+      const targetString = targetStrings?.[key].val;
+      const sourceString = sourceStrings?.[key]?.val || '';
 
       reporter.config({ key, targetString, sourceString });
 
@@ -97,7 +87,6 @@ function validateLocales({ locales, sourceLocale }) {
       validateString({
         targetString,
         targetLocale,
-        targetOptions,
         sourceString,
         sourceLocale
       });
@@ -108,7 +97,7 @@ function validateLocales({ locales, sourceLocale }) {
 
     if (missingKeys.length) {
       missingKeys.forEach((key) => {
-        reporter.config({ key, sourceString: sourceStrings[key], targetString: '' });
+        reporter.config({ key, sourceString: sourceStrings[key].val, targetString: '' });
         reporter.error('missing', `String missing from locale file.`)
       })
     }
@@ -135,23 +124,14 @@ function validateLocales({ locales, sourceLocale }) {
   //if (!build) console.log('\nFINAL REPORT:\n',JSON.stringify(finalReport, null, 2),'\n');
 }
 
-function validateString({ targetString, targetLocale, targetOptions, sourceString, sourceLocale }) {
+function validateString({ targetString, targetLocale, sourceString, sourceLocale }) {
 
   const re = /[\u2000-\u206F\u2E00-\u2E7F\n\r\\'!"#$%&()*+,\-.\/:;<=>?@\[\]^_`{|}~]/g; // eslint-disable-line
 
   if (sourceLocale
     && targetLocale !== sourceLocale
     && targetString.replace(re,'') === sourceString.replace(re,'')) {
-
-    const sourceHash = crypto
-      .createHash('sha1')
-      .update(sourceString)
-      .digest("base64");
-
-    if (targetOptions.translated !== true || targetOptions.sourceHash !== sourceHash) {
-      reporter.warning('untranslated', `String has not been translated.`)
-    }
-
+    reporter.warning('untranslated', `String has not been translated.`)
     return reporter.checks;
   }
 
@@ -194,8 +174,10 @@ function validateString({ targetString, targetLocale, targetOptions, sourceStrin
     const sourceMap = _map(sourceTokens);
 
     const argDiff = Array.from(targetMap.arguments).filter(arg => !Array.from(sourceMap.arguments).includes(arg));
+    
+    const badArgPos = targetString.indexOf(argDiff[0]);
     if (argDiff.length) {
-      reporter.error('argument', `Unrecognized arguments ${JSON.stringify(argDiff)}`);
+      reporter.error('argument', `Unrecognized arguments ${JSON.stringify(argDiff)}`, { column: badArgPos });
     }
 
     // remove all translated content, leaving only the messageformat structure

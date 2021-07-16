@@ -58,7 +58,7 @@ Reporter.prototype.warning = function(type, msg, details = {}) {
     .replace(/\n/g, '\\n')
     .replace(/"/g, '\\"');
 
-  if (type.match(/split|newline/)) {
+  if (['split', 'newline'].includes(type)) {
     column = 0;
   }
   else if (this.key) {
@@ -83,7 +83,11 @@ Reporter.prototype.error = function(type, msg, details = {}) {
   let column = relativeColumn,
   keyPos, line, linePos, valPos;
 
-  if (this.string) {
+  if (type === 'json-parse' || type === 'json-parse-fatal') {
+    line = this.fileContents.substring(0, relativeColumn).split('\n').length;
+    column = relativeColumn - this.fileContents.substring(0, relativeColumn).lastIndexOf('\n');
+  }
+  else {
     const cleanTarget = this.target
       .replace(/\n/g, '\\n')
       .replace(/"/g, '\\"');
@@ -102,10 +106,6 @@ Reporter.prototype.error = function(type, msg, details = {}) {
         column = 0;
       }
     }
-  }
-  else if (type === 'json-parse' || type === 'json-parse-fatal') {
-    line = this.fileContents.substring(0, relativeColumn).split('\n').length;
-    column = relativeColumn - this.fileContents.substring(0, relativeColumn).lastIndexOf('\n');
   }
 
   return this.log('error', type, msg, column, line);
