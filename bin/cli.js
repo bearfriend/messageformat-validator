@@ -115,24 +115,24 @@ localesPaths.forEach(localesPath => {
 
       if (program.rename) {
         let count = 0;
-        Object.keys(locales).forEach((locale) => {
+        Object.keys(locales).forEach(locale => {
           if (!allowedLocales || allowedLocales.includes(locale)) {
 
             const localeContents = locales[locale].contents;
-
             const t = locales[locale].parsed[program.oldKey];
-            const old = `${t.keyQuote}${t.key}${t.keyQuote}${t.keySpace}:${t.valSpace}${t.valQuote}${t.val}`;
-            const noo = `${t.keyQuote}${program.newKey}${t.keyQuote}${t.keySpace}:${t.valSpace}${t.valQuote}${t.val}`;
 
-            if (localeContents.includes(old)) {
+            if (localeContents.includes(t)) {
+              const old = `${t.keyQuote}${t.key}${t.keyQuote}${t.keySpace}:${t.valSpace}${t.valQuote}${t.val}`;
+              const noo = `${t.keyQuote}${program.newKey}${t.keyQuote}${t.keySpace}:${t.valSpace}${t.valQuote}${t.val}`;
+
               count += 1;
-              const newLocaleContents = localeContents.replace(t, noo);
+              const newLocaleContents = localeContents.replace(old, noo);
 
-              fs.writeFileSync(absLocalesPath + locale.file, newLocaleContents);
-              console.log(`${chalk.green('\u2714')} ${locale.file} - Renamed`);
+              fs.writeFileSync(absLocalesPath + locales[locale].file, newLocaleContents);
+              console.log(`${chalk.green('\u2714')} ${locales[locale].file} - Renamed`);
             }
             else {
-              console.log(`${chalk.red('\u2716')} ${locale.file} - Missing`);
+              console.log(`${chalk.red('\u2716')} ${locales[locale].file} - Missing`);
             }
           }
         });
@@ -233,7 +233,7 @@ localesPaths.forEach(localesPath => {
         }
       });
 
-      if (program.throwErrors && output.some((locale) => locale.report.totals.errors)) {
+      if (program.throwErrors && output.some(locale => locale.report.totals.errors)) {
         throw new Error('Errors were reported in at least one locale. See details above.');
       }
     })
