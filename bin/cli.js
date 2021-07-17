@@ -64,8 +64,7 @@ localesPaths.forEach(localesPath => {
 
   const subConfigPath = findConfig('mfv.config.json', { cwd: absLocalesPath });
 
-  const { source, format = 'json', locales: configLocales } = subConfigPath ? require(subConfigPath) : {}; /* eslint-disable-line global-require */
-  const ext = format.split('-')[0];
+  const { source, locales: configLocales } = subConfigPath ? require(subConfigPath) : {}; /* eslint-disable-line global-require */
 
   fs.readdir(absLocalesPath, (err, files) => {
     if (err) {
@@ -78,15 +77,31 @@ localesPaths.forEach(localesPath => {
     const allowedLocales = allowedLocalesString && allowedLocalesString.split(',');
     const filteredFiles = !allowedLocales ?
       files.filter(file => !(/^\..*/g).test(file)) :
-      files.filter(file => allowedLocales.includes(file.replace(`.${ext}`, '')) || file === sourceLocale + `.${ext}`);
+      files.filter(file => allowedLocales.includes(file.split('.')[0] || file.split('.')[0] === sourceLocale));
+
+    const targetLocales = filteredFiles.map(file => file.split('.')[0]);
+
+    if (program.removeExtraneous) {
+      console.log('Removing extraneous strings from:', targetLocales.join(', '));
+    }
+
+    if (program.addMissing) {
+      console.log('Adding missing strings to:', targetLocales.join(', '));
+    }
+
+    if (program.rename) {
+      console.log(`Renaming "${program.oldKey}" to "${program.newKey}" in:`, targetLocales.join(', '));
+    }
 
     Promise.all(filteredFiles.map(file => readFile(absLocalesPath + file, 'utf8')))
     .then(res => {
       const locales = res.reduce((acc, contents, idx) => {
-        const locale = filteredFiles[idx].replace(`.${ext}`,'');
+        const file = filteredFiles[idx];
+        const locale = file.split('.')[0];
         acc[locale] = {
           contents,
-          parsed: {}
+          parsed: {},
+          file
         };
         //            [  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][  value  ][        "        ][     ,    ][ // comment ]
         const regex = /\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s?):(?<valSpace>\s?)(?<valQuote>["'`])(?<val>.*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g;
@@ -98,18 +113,7 @@ localesPaths.forEach(localesPath => {
         return acc;
       }, {});
 
-      const targetLocales = filteredFiles.map(file => file.replace(`.${ext}`, ''));
-
-      if (program.removeExtraneous) {
-        console.log('Removing extraneous strings from:', targetLocales.join(', '));
-      }
-
-      if (program.addMissing) {
-        console.log('Adding missing strings to:', targetLocales.join(', '));
-      }
-
       if (program.rename) {
-        console.log(`Renaming "${program.oldKey}" to "${program.newKey}" in:`, targetLocales.join(', '));
         let count = 0;
         Object.keys(locales).forEach((locale) => {
           if (!allowedLocales || allowedLocales.includes(locale)) {
@@ -124,11 +128,11 @@ localesPaths.forEach(localesPath => {
               count += 1;
               const newLocaleContents = localeContents.replace(t, noo);
 
-              fs.writeFileSync(absLocalesPath + locale + `.${ext}`, newLocaleContents);
-              console.log(`${chalk.green('\u2714')} ${locale}.${ext} - Renamed`);
+              fs.writeFileSync(absLocalesPath + locale.file, newLocaleContents);
+              console.log(`${chalk.green('\u2714')} ${locale.file} - Renamed`);
             }
             else {
-              console.log(`${chalk.red('\u2716')} ${locale}.${ext} - Missing`);
+              console.log(`${chalk.red('\u2716')} ${locale.file} - Missing`);
             }
           }
         });
@@ -143,10 +147,10 @@ localesPaths.forEach(localesPath => {
       const translatorOutput = {};
 
       output.forEach((locale, idx) => {
-        const localePath = `${absLocalesPath}${locale.locale}.${ext}`;
+        const localePath = `${absLocalesPath}${locales[locale.locale].file}`;
 
         if (!allowedLocales || allowedLocales.includes(locale.locale)) {
-          console.log((idx > 0 ? '\n' : '') + chalk.underline(`${absLocalesPath}${locale.locale}.${ext}`));
+          console.log((idx > 0 ? '\n' : '') + chalk.underline(localePath));
           if (program.issues) {
 
             locale.report.totals.ignored = 0;
