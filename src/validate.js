@@ -5,23 +5,9 @@ const parse = require('messageformat-parser').parse;
 const pluralCats = require('make-plural/pluralCategories');
 const { Reporter } = require('./reporter');
 
-//const build = process.env.BUILD;//process.argv.includes('--build');
-
 let reporter;
 
 function validateLocales({ locales, sourceLocale }) {
-
-  /*
-  const targetResources = {};
-
-  if (build) {
-    Object.assign(targetResources, { en: localeResources.en });
-  }
-  else {
-    Object.assign(targetResources, localeResources);
-  }
-  */
-  //const finalReport = {};
 
   let sourceStrings;
 
@@ -39,44 +25,12 @@ function validateLocales({ locales, sourceLocale }) {
   return Object.keys(locales).map((targetLocale) => {
 
     reporter = new Reporter(targetLocale, locales[targetLocale].contents);
-
-    let targetStrings;
-    try {
-      targetStrings = locales[targetLocale].parsed;
-    }
-    catch(e) {
-      // todo: do this another way - currently never called
-      try {
-        targetStrings = JSON.parse(locales[targetLocale].contents.trim());
-      }
-      catch(ee) {
-
-        const column = Number(ee.message.split(' ').pop());
-
-        reporter.error('json-parse-fatal', ee.message, { column });
-
-        return [{
-          locale: targetLocale,
-          parsed: false,
-          issues: reporter.issues || [],
-          report: reporter.report,
-          _error: ee
-        }];
-      }
-
-      const column = Number(e.message.split(' ').pop());
-
-      reporter.error('json-parse', e.message, { column });
-
-    }
-
+    const targetStrings = locales[targetLocale].parsed;
     const checkedKeys = [];
 
     Object.keys(targetStrings).forEach((key) => {
 
       checkedKeys.push(key);
-
-      //console.log(targetStrings);
       const targetString = targetStrings?.[key].val;
       const sourceString = sourceStrings?.[key]?.val || '';
 
@@ -102,16 +56,6 @@ function validateLocales({ locales, sourceLocale }) {
       })
     }
 
-    //console.log(`\nLocale report for "${reporter.locale}":`);
-    //console.log(JSON.stringify(reporter.report, null, 2));
-
-    /*
-    Object.keys(reporter.report).forEach((key) => {
-      finalReport[key] = finalReport[key] || 0;
-      finalReport[key] += Object.values(reporter.report[key]).reduce((t,v) => t+v);
-    });
-    */
-
     return {
       locale: targetLocale,
       issues: reporter.issues || [],
@@ -120,8 +64,6 @@ function validateLocales({ locales, sourceLocale }) {
     }
 
   });
-
-  //if (!build) console.log('\nFINAL REPORT:\n',JSON.stringify(finalReport, null, 2),'\n');
 }
 
 function validateString({ targetString, targetLocale, sourceString, sourceLocale }) {
@@ -149,7 +91,6 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
       reporter.error('plural-key', e.message, { column });
     }
     else if ((targetString.match(/{/g) || 0).length !== (targetString.match(/}/g) || 0).length) {
-      //const charInstead = ''
       reporter.error('brace', 'Mismatched braces (i.e. {}). ' + e.message, { column: e.location.start.column });
     }
     else {
@@ -255,7 +196,6 @@ function _map(tokens, partsMap = { flatMap: [], arguments: new Set(), cases: [],
   });
 
   return partsMap;
-
 }
 
 module.exports = {

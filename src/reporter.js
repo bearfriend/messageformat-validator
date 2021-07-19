@@ -83,31 +83,25 @@ Reporter.prototype.error = function(type, msg, details = {}) {
   let column = relativeColumn,
   keyPos, line, linePos, valPos;
 
-  if (type === 'json-parse' || type === 'json-parse-fatal') {
-    line = this.fileContents.substring(0, relativeColumn).split('\n').length;
-    column = relativeColumn - this.fileContents.substring(0, relativeColumn).lastIndexOf('\n');
-  }
-  else {
-    const cleanTarget = this.target
-      .replace(/\n/g, '\\n')
-      .replace(/"/g, '\\"');
+  const cleanTarget = this.target
+    .replace(/\n/g, '\\n')
+    .replace(/"/g, '\\"');
 
-    if (type === 'missing') {
+  if (type === 'missing') {
+    column = 0;
+  }
+  else if (this.key) {
+    // todo: this seems json-specific
+    keyPos = this.fileContents.indexOf(`"${this.key}"`);
+    valPos = this.fileContents.indexOf(`"${cleanTarget}"`, keyPos);
+    linePos = this.fileContents.lastIndexOf(String.fromCharCode(10), keyPos);
+    column = (valPos + 1) - linePos + relativeColumn;
+
+    if (valPos === -1) {
+      // the target string likely contains a backslash that does not escape anything
       column = 0;
     }
-    else if (this.key) {
-      keyPos = this.fileContents.indexOf(`"${this.key}"`);
-      valPos = this.fileContents.indexOf(`"${cleanTarget}"`, keyPos);
-      linePos = this.fileContents.lastIndexOf(String.fromCharCode(10), keyPos);
-      column = (valPos + 1) - linePos + relativeColumn;
-
-      if (valPos === -1) {
-        // the target string likely contains a backslash that does not escape anything
-        column = 0;
-      }
-    }
   }
-
   return this.log('error', type, msg, column, line);
 };
 
