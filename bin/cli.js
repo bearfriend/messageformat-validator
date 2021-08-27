@@ -74,11 +74,10 @@ localesPaths.forEach(localesPath => {
 
     const sourceLocale = program.sourceLocale || source || globalSource;
     const allowedLocalesString = program.locales || configLocales || globalLocales;
-    const allowedLocales = allowedLocalesString && allowedLocalesString.split(',');
+    const allowedLocales = allowedLocalesString && allowedLocalesString.split(',').concat(sourceLocale);
     const filteredFiles = !allowedLocales ?
       files.filter(file => !(/^\..*/g).test(file)) :
-      files.filter(file => allowedLocales.includes(file.split('.')[0] || file.split('.')[0] === sourceLocale));
-
+      files.filter(file => allowedLocales.includes(file.split('.')[0]));
     const targetLocales = filteredFiles.map(file => file.split('.')[0]);
 
     if (program.removeExtraneous) {

@@ -11,15 +11,14 @@ function Reporter(locale, fileContents) {
   this.issues = [];
 }
 
-Reporter.prototype.config = function({ key, targetString, sourceString }) {
-  this.key = key;
+Reporter.prototype.config = function(targetString, sourceString) {
+  this.key = targetString.key;
 
-  if (typeof targetString !== "undefined") this.target = targetString.replace(/\n/g, '\n');
-  if (typeof sourceString !== "undefined") this.source = sourceString.replace(/\n/g, '\n');
+  if (typeof targetString !== "undefined") this.target = targetString; //.replace(/\n/g, '\n');
+  if (typeof sourceString !== "undefined") this.source = sourceString; //.replace(/\n/g, '\n');
 };
 
 Reporter.prototype.log = function(level, type, msg, column = 0, line) {
-
   const levels = level + 's';
   this.report.totals[levels]++;
 
@@ -27,7 +26,7 @@ Reporter.prototype.log = function(level, type, msg, column = 0, line) {
   this.report[levels][type] = this.report[levels][type] || 0;
   this.report[levels][type]++;
 
-  const start = this.key ? this.fileContents.indexOf(`"${this.key}"`) : column;
+  const start = Math.max(column || this.fileContents.indexOf(this.target), 0);
   line = line || this.fileContents.substring(0, start).split('\n').length;
 
   const issue = {

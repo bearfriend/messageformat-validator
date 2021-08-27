@@ -9,18 +9,7 @@ let reporter;
 
 function validateLocales({ locales, sourceLocale }) {
 
-  let sourceStrings;
-
-  try {
-    sourceStrings = locales[sourceLocale].parsed;
-  }
-  catch(e) {
-    return [{
-      locale: sourceLocale,
-      parsed: false,
-      _error: e
-    }];
-  }
+  const sourceStrings = locales[sourceLocale].parsed;
 
   return Object.keys(locales).map((targetLocale) => {
 
@@ -28,13 +17,13 @@ function validateLocales({ locales, sourceLocale }) {
     const targetStrings = locales[targetLocale].parsed;
     const checkedKeys = [];
 
-    Object.keys(targetStrings).forEach((key) => {
+    Object.keys(targetStrings).forEach(key => {
 
       checkedKeys.push(key);
       const targetString = targetStrings?.[key].val;
       const sourceString = sourceStrings?.[key]?.val || '';
 
-      reporter.config({ key, targetString, sourceString });
+      reporter.config(targetStrings[key], sourceStrings[key]);
 
       if (!sourceString) reporter.error('extraneous', 'This string does not exist in the source file.');
 
@@ -51,7 +40,9 @@ function validateLocales({ locales, sourceLocale }) {
 
     if (missingKeys.length) {
       missingKeys.forEach((key) => {
-        reporter.config({ key, sourceString: sourceStrings[key].val, targetString: '' });
+        const sourceString = sourceStrings?.[key]?.val || '';
+
+        reporter.config(sourceStrings[key], sourceStrings[key]);
         reporter.error('missing', `String missing from locale file.`)
       })
     }
