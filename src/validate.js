@@ -5,99 +5,31 @@ const parse = require('messageformat-parser').parse;
 const pluralCats = require('make-plural/pluralCategories');
 const { Reporter } = require('./reporter');
 
-//const build = process.env.BUILD;//process.argv.includes('--build');
-
 let reporter;
 
 function validateLocales({ locales, sourceLocale }) {
 
-  /*
-  const targetResources = {};
-
-  if (build) {
-    Object.assign(targetResources, { en: localeResources.en });
-  }
-  else {
-    Object.assign(targetResources, localeResources);
-  }
-  */
-  //const finalReport = {};
-
-  let sourceStrings;
-
-  try {
-    sourceStrings = locales[sourceLocale].parsed || JSON.parse(locales[sourceLocale].contents);
-  }
-  catch(e) {
-    return [{
-      locale: sourceLocale,
-      parsed: false,
-      _error: e
-    }];
-  }
+  const sourceStrings = locales[sourceLocale].parsed;
 
   return Object.keys(locales).map((targetLocale) => {
 
     reporter = new Reporter(targetLocale, locales[targetLocale].contents);
-
-    let targetStrings;
-    try {
-      targetStrings = locales[targetLocale].parsed || JSON.parse(locales[targetLocale].contents);
-    }
-    catch(e) {
-
-      try {
-        targetStrings = JSON.parse(locales[targetLocale].contents.trim());
-      }
-      catch(ee) {
-
-        const column = Number(ee.message.split(' ').pop());
-
-        reporter.error('json-parse-fatal', ee.message, { column });
-
-        return [{
-          locale: targetLocale,
-          parsed: false,
-          issues: reporter.issues || [],
-          report: reporter.report,
-          _error: ee
-        }];
-      }
-
-      const column = Number(e.message.split(' ').pop());
-
-      reporter.error('json-parse', e.message, { column });
-
-    }
-
+    const targetStrings = locales[targetLocale].parsed;
     const checkedKeys = [];
 
-    Object.keys(targetStrings).forEach((key) => {
+    Object.keys(targetStrings).forEach(key => {
 
       checkedKeys.push(key);
+      const targetString = targetStrings?.[key].val;
+      const sourceString = sourceStrings?.[key]?.val || '';
 
-      const target = targetStrings[key];//.replace(/\n/g,'\\n');
-      const sourceString = sourceStrings[key] || '';//.replace(/\n/g,'\\n');
-
-      let targetOptions = {},
-        targetString;
-
-      if (Array.isArray(target)) {
-        targetString = target[0];
-        targetOptions = target[1];
-      }
-      else {
-        targetString = target;
-      }
-
-      reporter.config({ key, targetString, sourceString });
+      reporter.config(targetStrings[key], sourceStrings[key]);
 
       if (!sourceString) reporter.error('extraneous', 'This string does not exist in the source file.');
 
       validateString({
         targetString,
         targetLocale,
-        targetOptions,
         sourceString,
         sourceLocale
       });
@@ -108,20 +40,12 @@ function validateLocales({ locales, sourceLocale }) {
 
     if (missingKeys.length) {
       missingKeys.forEach((key) => {
-        reporter.config({ key, sourceString: sourceStrings[key], targetString: '' });
+        const sourceString = sourceStrings?.[key]?.val || '';
+
+        reporter.config(sourceStrings[key], sourceStrings[key]);
         reporter.error('missing', `String missing from locale file.`)
       })
     }
-
-    //console.log(`\nLocale report for "${reporter.locale}":`);
-    //console.log(JSON.stringify(reporter.report, null, 2));
-
-    /*
-    Object.keys(reporter.report).forEach((key) => {
-      finalReport[key] = finalReport[key] || 0;
-      finalReport[key] += Object.values(reporter.report[key]).reduce((t,v) => t+v);
-    });
-    */
 
     return {
       locale: targetLocale,
@@ -131,27 +55,16 @@ function validateLocales({ locales, sourceLocale }) {
     }
 
   });
-
-  //if (!build) console.log('\nFINAL REPORT:\n',JSON.stringify(finalReport, null, 2),'\n');
 }
 
-function validateString({ targetString, targetLocale, targetOptions, sourceString, sourceLocale }) {
+function validateString({ targetString, targetLocale, sourceString, sourceLocale }) {
 
   const re = /[\u2000-\u206F\u2E00-\u2E7F\n\r\\'!"#$%&()*+,\-.\/:;<=>?@\[\]^_`{|}~]/g; // eslint-disable-line
 
   if (sourceLocale
     && targetLocale !== sourceLocale
     && targetString.replace(re,'') === sourceString.replace(re,'')) {
-
-    const sourceHash = crypto
-      .createHash('sha1')
-      .update(sourceString)
-      .digest("base64");
-
-    if (targetOptions.translated !== true || targetOptions.sourceHash !== sourceHash) {
-      reporter.warning('untranslated', `String has not been translated.`)
-    }
-
+    reporter.warning('untranslated', `String has not been translated.`)
     return reporter.checks;
   }
 
@@ -169,7 +82,6 @@ function validateString({ targetString, targetLocale, targetOptions, sourceStrin
       reporter.error('plural-key', e.message, { column });
     }
     else if ((targetString.match(/{/g) || 0).length !== (targetString.match(/}/g) || 0).length) {
-      //const charInstead = ''
       reporter.error('brace', 'Mismatched braces (i.e. {}). ' + e.message, { column: e.location.start.column });
     }
     else {
@@ -194,8 +106,10 @@ function validateString({ targetString, targetLocale, targetOptions, sourceStrin
     const sourceMap = _map(sourceTokens);
 
     const argDiff = Array.from(targetMap.arguments).filter(arg => !Array.from(sourceMap.arguments).includes(arg));
+    
+    const badArgPos = targetString.indexOf(argDiff[0]);
     if (argDiff.length) {
-      reporter.error('argument', `Unrecognized arguments ${JSON.stringify(argDiff)}`);
+      reporter.error('argument', `Unrecognized arguments ${JSON.stringify(argDiff)}`, { column: badArgPos });
     }
 
     // remove all translated content, leaving only the messageformat structure
@@ -273,7 +187,6 @@ function _map(tokens, partsMap = { flatMap: [], arguments: new Set(), cases: [],
   });
 
   return partsMap;
-
 }
 
 module.exports = {
