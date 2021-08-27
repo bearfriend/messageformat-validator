@@ -1,9 +1,5 @@
 'use strict';
 
-//const fs = require('fs');
-
-//const build = process.env.BUILD;
-
 function Reporter(locale, fileContents) {
   this.locale = locale;
   this.fileContents = fileContents;
@@ -14,8 +10,8 @@ function Reporter(locale, fileContents) {
 Reporter.prototype.config = function(targetString, sourceString) {
   this.key = targetString.key;
 
-  if (typeof targetString !== "undefined") this.target = targetString; //.replace(/\n/g, '\n');
-  if (typeof sourceString !== "undefined") this.source = sourceString; //.replace(/\n/g, '\n');
+  if (typeof targetString !== "undefined") this.target = targetString;
+  if (typeof sourceString !== "undefined") this.source = sourceString;
 };
 
 Reporter.prototype.log = function(level, type, msg, column = 0, line) {
