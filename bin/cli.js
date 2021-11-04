@@ -165,10 +165,12 @@ localesPaths.forEach(localesPath => {
               else if (program.addMissing) {
                 if (issue.type === 'missing') {
                   const keys = Object.keys(locales[sourceLocale].parsed);
+                  const targetKeys = Object.keys(locales[locale.locale].parsed);
                   const keyIdx = keys.indexOf(issue.key);
                   const nextKey = keys[keyIdx + 1];
                   const previousKey = keys[keyIdx - 1];
-                  const siblingString = locales[locale.locale].parsed[nextKey || previousKey];
+                  const siblingString = locales[locale.locale].parsed[nextKey || previousKey]
+                    || locales[locale.locale].parsed[targetKeys[0]];
                   const contents = locales[locale.locale].contents;
                   const insertAt = contents.indexOf(siblingString.split(':')[0]) + Number(!nextKey ? String(siblingString).length : 0);
                   const comma = !nextKey && !siblingString.comma ? `,${siblingString.comment}` : '';
