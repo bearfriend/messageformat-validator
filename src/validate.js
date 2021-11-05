@@ -129,15 +129,15 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
     if (targetMap.cases.join(',') !== sourceMap.cases.join(',')) {
       const caseDiff = Array.from(targetMap.cases).filter(arg => !Array.from(sourceMap.cases).includes(arg));
       if (caseDiff.length) {
-        reporter.error('case', `Unrecognized cases ${JSON.stringify(caseDiff)}`);
+        reporter.error('case', `Unrecognized cases ${JSON.stringify(caseDiff.map(c => c.replace('|plural|', '')))}`);
       }
-      else {
+      else if (targetMap.nested && targetMap.cases.length === sourceMap.cases.length) {
         // TODO: better identify case order vs nesting order
         reporter.error('nest', `Nesting order does not match source. `);
       }
     }
 
-    if (targetMap.cases.indexOf('select') > 0) {
+    if (targetMap.cases.findIndex(c => c[0] !== '|select|') > 0) {
       reporter.warning('nest', 'Plurals should always nest inside selects.');
     }
 
@@ -150,9 +150,9 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
   }
 }
 
-function _map(tokens, partsMap = { flatMap: [], arguments: new Set(), cases: [], stringTokens: [] }) {
+function _map(tokens, partsMap = { nested: false, arguments: new Set(), cases: [], stringTokens: [] }) {
 
-  tokens.forEach((token) => {
+  tokens.forEach(token => {
 
     if (typeof token !== 'string') {
 
@@ -161,6 +161,11 @@ function _map(tokens, partsMap = { flatMap: [], arguments: new Set(), cases: [],
       }
 
       if (token.cases) {
+
+        if (partsMap.cases.length) {
+          partsMap.nested = true;
+        }
+
         token.cases.forEach((case_) => {
 
           switch (token.type) {
@@ -171,7 +176,7 @@ function _map(tokens, partsMap = { flatMap: [], arguments: new Set(), cases: [],
             break;
             case 'plural':
 
-            partsMap.cases.push('|plural|');
+            partsMap.cases.push('|plural|' + case_.key);
 
             break;
           }

@@ -7,7 +7,7 @@
 const fs = require('fs');
 const { promisify } = require('util');
 const chalk = require('chalk');
-const glob = require("glob");
+const glob = require('glob');
 const readFile = promisify(fs.readFile);
 const { program } = require('commander');
 const findConfig = require('find-config');
