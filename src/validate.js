@@ -127,7 +127,7 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
     }
 
     if (targetMap.cases.join(',') !== sourceMap.cases.join(',')) {
-      const caseDiff = Array.from(targetMap.cases).filter(arg => !Array.from(sourceMap.cases).includes(arg));
+      const caseDiff = Array.from(targetMap.cases.map(c => c.replace(/(?<=\|plural\|).*/, ''))).filter(arg => !Array.from(sourceMap.cases).map(c => c.replace(/(?<=\|plural\|).*/, '')).includes(arg));
       if (caseDiff.length) {
         reporter.error('case', `Unrecognized cases ${JSON.stringify(caseDiff.map(c => c.replace('|plural|', '')))}`);
       }
