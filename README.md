@@ -2,6 +2,41 @@
 
 Validates messageformat strings against various errors and warnings.
 
+## Usage
+
+`mfv [options] [command]`
+
+### Options:
+
+`-V, --version` - output the version number
+  
+`-e, --throw-errors` - Throw an error if error issues are found
+  
+`--no-issues` - Don't output issues
+  
+`-i, --ignoreIssueTypes <items>` - Ignore these comma-separated issue types
+  
+`-l, --locales <items>` - Process only these comma-separated locales
+  
+`-p, --path <path>` - Path to a directory containing locale files
+  
+`-t, --translator-output` - Output JSON of all source strings that are missing or untranslated in the target
+  
+`-s, --source-locale <locale>` - The locale to use as the source
+  
+`-h, --help` - display help for command
+
+### Commands:
+  
+`remove-extraneous` - Remove strings that do not exist in the source locale
+  
+`add-missing` - Add strings that do not exist in the target locale
+  
+`rename <old-key> <new-key>` - Rename a string
+  
+`help [command]` - display help for command
+
+
 ## Errors
 
 `argument` - There are unrecognized arguments in the target string.
