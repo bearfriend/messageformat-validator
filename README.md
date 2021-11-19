@@ -2,6 +2,12 @@
 
 Validates messageformat strings against various errors and warnings.
 
+## Install
+
+```
+npm i messageformat-validator
+```
+
 ## Usage
 
 `mfv [options] [command]`
@@ -46,10 +52,6 @@ Validates messageformat strings against various errors and warnings.
 `case` - There are unrecognized cases in the target string.
 
 `extraneous` - There is an extraneous key/string in the target locale.
-
-`json-parse` - The target locale contains invalid JSON.
-
-`json-parse-fatal` - The target locale contains invalid JSON that is irrecoverable.
 
 `missing` - There is a key/string missing from the target locale.
 
