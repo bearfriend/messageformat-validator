@@ -160,7 +160,6 @@ localesPaths.forEach(localesPath => {
                   locales[locale.locale].contents = locales[locale.locale].contents.replace(locales[locale.locale].parsed[issue.key], '')
                   console.log('Removed:', issue.key);
                 }
-
               }
               else if (program.addMissing) {
                 if (issue.type === 'missing') {
@@ -169,15 +168,16 @@ localesPaths.forEach(localesPath => {
                   const keyIdx = keys.indexOf(issue.key);
                   const nextKey = keys[keyIdx + 1];
                   const previousKey = keys[keyIdx - 1];
-                  const siblingString = locales[locale.locale].parsed[nextKey || previousKey]
-                    || locales[locale.locale].parsed[targetKeys[0]];
+                  const siblingString = locales[locale.locale].parsed[nextKey || previousKey] || locales[locale.locale].parsed[targetKeys[targetKeys.length - 1]];
                   const contents = locales[locale.locale].contents;
-                  const insertAt = contents.indexOf(siblingString.split(':')[0]) + Number(!nextKey ? String(siblingString).length : 0);
+                  const nextString = locales[locale.locale].parsed[nextKey];
+                  const insertAt = contents.indexOf(siblingString.split(':')[0]) + Number(!nextString ? String(siblingString).length : 0);
                   const comma = !nextKey && !siblingString.comma ? `,${siblingString.comment}` : '';
                   const commaOffset = comma ? siblingString.comment.length : 0;
                   const sourceString = `${comma}${locales[sourceLocale].parsed[issue.key]}`;
                   locales[locale.locale].contents = [contents.slice(0, insertAt - commaOffset), sourceString, contents.slice(insertAt)].join('');
                   console.log('Added:', issue.key);
+                  locales[locale.locale].parsed[issue.key] = locales[sourceLocale].parsed[issue.key];
                 }
               }
               else if (program.translatorOutput) {
