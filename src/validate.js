@@ -137,7 +137,7 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
       }
     }
 
-    if (targetMap.cases.findIndex(c => c[0] !== '|select|') > 0) {
+    if (targetMap.cases.includes('|select|') && targetMap.cases[0] !== '|select|') {
       reporter.warning('nest', 'Plurals should always nest inside selects.');
     }
 
