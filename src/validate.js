@@ -137,7 +137,10 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
       }
     }
 
-    if (targetMap.cases.findIndex(c => c[0] !== '|select|') > 0) {
+    const hasPlural = targetMap.cases.find(c => c.startsWith('|plural|'));
+    const lastItem = targetMap.cases[targetMap.cases.length - 1];
+
+    if (hasPlural && !lastItem.startsWith('|plural|')) {
       reporter.warning('nest', 'Plurals should always nest inside selects.');
     }
 

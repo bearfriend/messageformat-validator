@@ -1,6 +1,6 @@
 {
   "name": "messageformat-validator",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "Validates that ICU MessageFormat strings are well-formed, and that translated target strings are compatible with their source.",
   "repository": {
     "type": "git",
