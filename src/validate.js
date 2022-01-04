@@ -1,5 +1,6 @@
 'use strict';
 
+
 const crypto = require('crypto');
 const parse = require('messageformat-parser').parse;
 const pluralCats = require('make-plural/pluralCategories');
