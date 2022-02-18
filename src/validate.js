@@ -113,7 +113,7 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
     }
 
     // remove all translated content, leaving only the messageformat structure
-    const regx = new RegExp(targetMap.stringTokens.map(t => t.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|'), 'g');
+    const regx = new RegExp(targetMap.stringTokens.map(t => t.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).filter(s => s !== '\\ ').join('|'), 'g');
     const structure = targetString.replace(regx, m => Array(m.length).fill(' ').join('')); // eslint-disable-line newline-per-chained-call
 
     const newlinePos = structure.indexOf(String.fromCharCode(10));
