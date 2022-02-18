@@ -37,6 +37,8 @@ npm i messageformat-validator
 `remove-extraneous` - Remove strings that do not exist in the source locale
   
 `add-missing` - Add strings that do not exist in the target locale
+
+`sort` - Sort strings alphabetically by key, maintaining any blocks
   
 `rename <old-key> <new-key>` - Rename a string
   
