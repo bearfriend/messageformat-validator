@@ -47,6 +47,13 @@ program
   });
 
 program
+  .command('sort')
+  .description('Sort strings alphabetically by key, maintaining any blocks')
+  .action(() => {
+    program.sort = true;
+  });
+
+program
   .command('rename <old-key> <new-key>')
   .description('Rename a string')
   .action((oldKey, newKey) => {
@@ -154,52 +161,68 @@ localesPaths.forEach(localesPath => {
 
             locale.report.totals.ignored = 0;
 
-            locale.issues.forEach((issue) => {
-              if (program.removeExtraneous) {
-                if (issue.type === 'extraneous') {
-                  locales[locale.locale].contents = locales[locale.locale].contents.replace(locales[locale.locale].parsed[issue.key], '')
-                  console.log('Removed:', issue.key);
-                }
-              }
-              else if (program.addMissing) {
-                if (issue.type === 'missing') {
-                  const keys = Object.keys(locales[sourceLocale].parsed);
-                  const targetKeys = Object.keys(locales[locale.locale].parsed);
-                  const keyIdx = keys.indexOf(issue.key);
-                  const nextKey = keys[keyIdx + 1];
-                  const previousKey = keys[keyIdx - 1];
-                  const nextString = locales[locale.locale].parsed[nextKey];
-                  const siblingString = nextString || locales[locale.locale].parsed[previousKey] || locales[locale.locale].parsed[targetKeys[targetKeys.length - 1]];
-                  const contents = locales[locale.locale].contents;
-                  const insertAt = contents.indexOf(siblingString) + Number(!nextString ? String(siblingString).length : 0);
-                  const comma = !nextString && !siblingString.comma ? `,${siblingString.comment}` : '';
-                  const commaOffset = comma ? siblingString.comment.length : 0;
-                  const sourceString = `${comma}${locales[sourceLocale].parsed[issue.key]}`;
-                  locales[locale.locale].contents = [contents.slice(0, insertAt - commaOffset), sourceString, contents.slice(insertAt)].join('');
-                  console.log('Added:', issue.key);
-                  locales[locale.locale].parsed[issue.key] = locales[sourceLocale].parsed[issue.key];
-                }
-              }
-              else if (program.translatorOutput) {
-                if (['missing', 'untranslated'].includes(issue.type)) {
-                  translatorOutput[issue.key] = issue.source;
-                }
-              }
-              else if (!program.ignoreIssueTypes || !program.ignoreIssueTypes.replace(' ','').split(',').includes(issue.type)) {
-                console.log(
-                  '  ' + chalk.grey(`${issue.line}:${issue.column}`) +
-                  '  ' + chalk[issue.level == 'error' ? 'red' : 'yellow'](issue.level) +
-                  ' ' + chalk.grey(issue.type) +
-                  '  ' + chalk.cyan(issue.key) +
-                  '  ' + chalk.white(issue.msg)
-                );
-              }
-              else {
-                locale.report.totals.ignored += 1;
-              }
-            });
+            if (program.sort) {
+              const sorted = Object.values(locales[locale.locale].parsed)
+              .reduce((acc, val) => {
+                const block = !val.startsWith('\n\n') ? acc.pop() || [] : [];
+                block.push(val.replace('\n\n', '\n'));
+                acc.push(block);
+                return acc;
+              }, [])
+              .map(block => block.sort().join(''))
+              .sort()
+              .join('\n');
 
-            // todo: reimplement sort
+              locales[locale.locale].contents = locales[locale.locale].contents.replace(Object.values(locales[locale.locale].parsed).join(''), sorted);
+            }
+            else {
+
+              locale.issues.forEach((issue) => {
+                if (program.removeExtraneous) {
+                  if (issue.type === 'extraneous') {
+                    locales[locale.locale].contents = locales[locale.locale].contents.replace(locales[locale.locale].parsed[issue.key], '')
+                    console.log('Removed:', issue.key);
+                  }
+                }
+                else if (program.addMissing) {
+                  if (issue.type === 'missing') {
+                    const keys = Object.keys(locales[sourceLocale].parsed);
+                    const targetKeys = Object.keys(locales[locale.locale].parsed);
+                    const keyIdx = keys.indexOf(issue.key);
+                    const nextKey = keys[keyIdx + 1];
+                    const previousKey = keys[keyIdx - 1];
+                    const nextString = locales[locale.locale].parsed[nextKey];
+                    const siblingString = nextString || locales[locale.locale].parsed[previousKey] || locales[locale.locale].parsed[targetKeys[targetKeys.length - 1]];
+                    const contents = locales[locale.locale].contents;
+                    const insertAt = contents.indexOf(siblingString) + Number(!nextString ? String(siblingString).length : 0);
+                    const comma = !nextString && !siblingString.comma ? `,${siblingString.comment}` : '';
+                    const commaOffset = comma ? siblingString.comment.length : 0;
+                    const sourceString = `${comma}${locales[sourceLocale].parsed[issue.key]}`;
+                    locales[locale.locale].contents = [contents.slice(0, insertAt - commaOffset), sourceString, contents.slice(insertAt)].join('');
+                    console.log('Added:', issue.key);
+                    locales[locale.locale].parsed[issue.key] = locales[sourceLocale].parsed[issue.key];
+                  }
+                }
+                else if (program.translatorOutput) {
+                  if (['missing', 'untranslated'].includes(issue.type)) {
+                    translatorOutput[issue.key] = issue.source;
+                  }
+                }
+                else if (!program.ignoreIssueTypes || !program.ignoreIssueTypes.replace(' ','').split(',').includes(issue.type)) {
+                  console.log([
+                    '  ', chalk.grey(`${issue.line}:${issue.column}`),
+                    '  ', chalk[issue.level == 'error' ? 'red' : 'yellow'](issue.level),
+                    ' ', chalk.grey(issue.type),
+                    '  ', chalk.cyan(issue.key),
+                    '  ', chalk.white(issue.msg)
+                  ].join(''));
+                }
+                else {
+                  locale.report.totals.ignored += 1;
+                }
+              });
+            }
+
             if (program.removeExtraneous || program.addMissing || program.sort) {
               fs.writeFileSync(localePath, locales[locale.locale].contents);
             }
@@ -209,17 +232,18 @@ localesPaths.forEach(localesPath => {
             console.log(JSON.stringify(translatorOutput, null, 2));
           }
 
-          if (program.removeExtraneous || program.addMissing) {
-            if (program.removeExtraneous) {
-              const count = locale.report.errors ? locale.report.errors.extraneous || 0 : 0;
-              const cliReport = `\n ${chalk.green('\u2714')} Removed ${count} extraneous strings`;
-              console.log(cliReport);
-            }
-            if (program.addMissing) {
-              const count = locale.report.errors ? locale.report.errors.missing || 0 : 0;
-              const cliReport = `\n ${chalk.green('\u2714')} Added ${count} missing strings`;
-              console.log(cliReport);
-            }
+          if (program.removeExtraneous) {
+            const count = locale.report.errors ? locale.report.errors.extraneous || 0 : 0;
+            const cliReport = `\n ${chalk.green('\u2714')} Removed ${count} extraneous strings`;
+            console.log(cliReport);
+          }
+          else if (program.addMissing) {
+            const count = locale.report.errors ? locale.report.errors.missing || 0 : 0;
+            const cliReport = `\n ${chalk.green('\u2714')} Added ${count} missing strings`;
+            console.log(cliReport);
+          }
+          else if (program.sort) {
+            console.log('\nSorted');
           }
           else if (locale.report.totals.errors || locale.report.totals.warnings) {
             const color = locale.report.totals.errors ? 'red' : 'yellow';
