@@ -62,6 +62,13 @@ program
     program.newKey = newKey;
   });
 
+program
+  .command('highlight <key>')
+  .description('Hightlight non-translatable ICU MessageFormat structure')
+  .action(key => {
+    program.highlight = key;
+  });
+
 program.parse(process.argv);
 
 const localesPaths = glob.sync(program.path || path);
@@ -109,8 +116,8 @@ localesPaths.forEach(localesPath => {
           parsed: {},
           file
         };
-        //            [  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][  value  ][        "        ][     ,    ][ // comment ]
-        const regex = /\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s?):(?<valSpace>\s?)(?<valQuote>["'`])(?<val>.*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g;
+        //            [  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][     value    ][        "        ][     ,    ][ // comment ]
+        const regex = /\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s?):(?<valSpace>\s?)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g;
         const matches = Array.from(contents.matchAll(regex));//.map(m => m.groups);
 
         matches.forEach(match => {
@@ -118,6 +125,33 @@ localesPaths.forEach(localesPath => {
         });
         return acc;
       }, {});
+
+      if (program.highlight) {
+
+        Object.keys(locales).forEach(locale => {
+          if ((!allowedLocales || allowedLocales.includes(locale)) && locales[locale].parsed[program.highlight]) {
+            const re = new RegExp('(?<=\s*){(.|\n)*?({|})|\s*}(.|\n)*?{|[{#]|(\s*)}', 'g');
+
+            const str = String(locales[locale].parsed[program.highlight].val);
+
+            let match;
+            let prevEnd = 0;
+            const sections = [];
+
+            while((match = re.exec(str)) !== null) {
+              sections.push(str.substring(prevEnd, match.index).replace(/ /g, '·').replace(/\t/g, '··').replace(/\n/g, '␤\n'));
+              sections.push(chalk.red(str.substr(match.index, match[0].length).replace(/ /g, '·').replace(/\t/g, '··').replace(/\n/g, '␤\n')));
+              prevEnd = match.index + match[0].length;
+            }
+
+            const highlighted = sections.join('');
+            console.log(highlighted);
+
+          }
+        });
+
+        return;
+      }
 
       if (program.rename) {
         let count = 0;
