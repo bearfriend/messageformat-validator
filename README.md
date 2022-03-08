@@ -41,6 +41,8 @@ npm i messageformat-validator
 `sort` - Sort strings alphabetically by key, maintaining any blocks
   
 `rename <old-key> <new-key>` - Rename a string
+
+`highlight <key>` - Output a string with all non-translatable ICU MessageFormat structure highlighted
   
 `help [command]` - display help for command
 

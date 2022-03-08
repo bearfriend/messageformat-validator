@@ -64,7 +64,7 @@ program
 
 program
   .command('highlight <key>')
-  .description('Hightlight non-translatable ICU MessageFormat structure')
+  .description('Output a string with all non-translatable ICU MessageFormat structure highlighted')
   .action(key => {
     program.highlight = key;
   });
