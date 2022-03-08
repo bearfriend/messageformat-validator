@@ -39,6 +39,8 @@ npm i messageformat-validator
 `add-missing` - Add strings that do not exist in the target locale
   
 `rename <old-key> <new-key>` - Rename a string
+
+`highlight <key>` - Output a string with all non-translatable ICU MessageFormat structure highlighted
   
 `help [command]` - display help for command
 
