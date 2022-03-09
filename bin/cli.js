@@ -167,10 +167,15 @@ localesPaths.forEach(localesPath => {
 
       if (program.highlight) {
 
+        const showWS = str => str
+          .replace(/ /g, '·')
+          .replace(/\t/g, '··')
+          .replace(/\n/g, '␤\n');
+
+        const re = /(?<=\s*){(.|\n)*?({|})|\s*}(.|\n)*?{|[{#]|(\s*)}/g;
+
         Object.keys(locales).forEach(locale => {
           if ((!allowedLocales || allowedLocales.includes(locale)) && locales[locale].parsed[program.highlight]) {
-            const re = /(?<=\s*){(.|\n)*?({|})|\s*}(.|\n)*?{|[{#]|(\s*)}/g;
-
             const str = String(locales[locale].parsed[program.highlight].val);
 
             let match;
@@ -178,10 +183,12 @@ localesPaths.forEach(localesPath => {
             const sections = [];
 
             while((match = re.exec(str)) !== null) {
-              sections.push(str.substring(prevEnd, match.index).replace(/ /g, '·').replace(/\t/g, '··').replace(/\n/g, '␤\n'));
-              sections.push(chalk.red(str.substr(match.index, match[0].length).replace(/ /g, '·').replace(/\t/g, '··').replace(/\n/g, '␤\n')));
+              sections.push(showWS(str.substring(prevEnd, match.index)));
+              sections.push(chalk.red(showWS(str.substr(match.index, match[0].length))));
               prevEnd = match.index + match[0].length;
             }
+
+            sections.push(showWS(str.substring(prevEnd)));
 
             const highlighted = sections.join('');
             console.log(highlighted);
