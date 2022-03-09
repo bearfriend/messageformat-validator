@@ -29,6 +29,8 @@ npm i messageformat-validator
 `-t, --translator-output` - Output JSON of all source strings that are missing or untranslated in the target
   
 `-s, --source-locale <locale>` - The locale to use as the source
+
+`--json-obj` - Indicate that the files to be parsed are JSON files with keys that have objects for values with their own keys: `translation` and `context`
   
 `-h, --help` - display help for command
 
