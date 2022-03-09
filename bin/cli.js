@@ -127,6 +127,7 @@ localesPaths.forEach(localesPath => {
         const matches = Array.from(contents.matchAll(regex));//.map(m => m.groups);
 
         let findContext = false;
+        let findValue = false;
 
         matches.forEach(match => {
 
@@ -137,13 +138,29 @@ localesPaths.forEach(localesPath => {
               return;
             }
 
-            if (match.groups.key === 'translation' && match.groups.realKey) {
+            if (findValue && match.groups.key === 'translation') {
+              acc[locale].parsed[findValue].val = match.groups.val;
+              findValue = false;
+              return;
+            }
+
+            if (match.groups.realKey) {
+
+              if (match.groups.key === 'translation') {
+                findContext = match.groups.realKey;
+              }
+              if (match.groups.key === 'context') {
+                match.groups.comment = match.groups.val;
+                findValue = match.groups.realKey;
+              }
+
               match.groups.key = match.groups.realKey;
-              findContext = match.groups.key;
             }
           }
 
-          acc[locale].parsed[match.groups.key] = Object.assign(String(match[0]), match.groups);
+          if (!acc[locale].parsed[match.groups.key]) {
+            acc[locale].parsed[match.groups.key] = Object.assign(String(match[0]), match.groups);
+          }
         });
         return acc;
       }, {});
