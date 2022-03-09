@@ -23,7 +23,8 @@ Reporter.prototype.log = function(level, type, msg, column = 0, line) {
   this.report[levels][type]++;
 
   const start = Math.max(column || this.fileContents.indexOf(this.target), 0);
-  line = line || this.fileContents.substring(0, start).split('\n').length;
+  const newlines = this.target.split(this.target.value)[0].match(/\n/)?.length || 0;
+  line = line || this.fileContents.substring(0, start).split('\n').length + newlines;
 
   const issue = {
     locale: this.locale,
