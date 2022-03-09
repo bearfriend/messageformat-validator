@@ -130,7 +130,7 @@ localesPaths.forEach(localesPath => {
 
         Object.keys(locales).forEach(locale => {
           if ((!allowedLocales || allowedLocales.includes(locale)) && locales[locale].parsed[program.highlight]) {
-            const re = new RegExp('(?<=\s*){(.|\n)*?({|})|\s*}(.|\n)*?{|[{#]|(\s*)}', 'g');
+            const re = /(?<=\s*){(.|\n)*?({|})|\s*}(.|\n)*?{|[{#]|(\s*)}/g;
 
             const str = String(locales[locale].parsed[program.highlight].val);
 
