@@ -117,15 +117,20 @@ localesPaths.forEach(localesPath => {
           parsed: {},
           file
         };
+
+        const useJSONObj = program.jsonObj || jsonObj || globalJsonObj;
+
         //             [                   ][  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][     value    ][        "        ][     ,    ][ // comment ]
-        const regex = /("(?<realKey>.*)": {)*\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s?):(?<valSpace>\s?)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g;
+        const regex = useJSONObj
+          ? /("(?<realKey>.*)"(\s?):(\s?){)*\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s?):(?<valSpace>\s?)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g
+          : /\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s?):(?<valSpace>\s?)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g;
         const matches = Array.from(contents.matchAll(regex));//.map(m => m.groups);
 
         let findContext = false;
 
         matches.forEach(match => {
 
-          if (program.jsonObj || jsonObj || globalJsonObj) {
+          if (useJSONObj) {
             if (findContext && match.groups.key === 'context') {
               acc[locale].parsed[findContext].comment = match.groups.val;
               findContext = false;
