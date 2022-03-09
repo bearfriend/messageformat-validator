@@ -13,7 +13,7 @@ const { program } = require('commander');
 const findConfig = require('find-config');
 const configPath = findConfig('mfv.config.json');
 const { version } = require('../package.json');
-const { path, source: globalSource, locales: globalLocales } = configPath ? require(configPath) : {};
+const { path, source: globalSource, locales: globalLocales, jsonObj: globalJsonObj } = configPath ? require(configPath) : {};
 const { validateLocales } = require('../src/validate');
 
 require = require('esm')(module) // eslint-disable-line
@@ -27,6 +27,7 @@ program
   .option('-p, --path <path>', 'Path to a directory containing locale files')
   .option('-t, --translator-output', 'Output JSON of all source strings that are missing or untranslated in the target')
   .option('-s, --source-locale <locale>', 'The locale to use as the source')
+  .option('--json-obj', 'Indicate that the files to be parsed are JSON files with keys that have objects for values')
   .command('validate', { isDefault: true, hidden: true })
   .action(() => {
     program.validate = true;
@@ -78,7 +79,7 @@ localesPaths.forEach(localesPath => {
 
   const subConfigPath = findConfig('mfv.config.json', { cwd: absLocalesPath });
 
-  const { source, locales: configLocales } = subConfigPath ? require(subConfigPath) : {}; /* eslint-disable-line global-require */
+  const { source, locales: configLocales, jsonObj } = subConfigPath ? require(subConfigPath) : {}; /* eslint-disable-line global-require */
 
   fs.readdir(absLocalesPath, (err, files) => {
     if (err) {
@@ -116,11 +117,27 @@ localesPaths.forEach(localesPath => {
           parsed: {},
           file
         };
-        //            [  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][     value    ][        "        ][     ,    ][ // comment ]
-        const regex = /\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s?):(?<valSpace>\s?)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g;
+        //             [                   ][  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][     value    ][        "        ][     ,    ][ // comment ]
+        const regex = /("(?<realKey>.*)": {)*\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s?):(?<valSpace>\s?)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g;
         const matches = Array.from(contents.matchAll(regex));//.map(m => m.groups);
 
+        let findContext = false;
+
         matches.forEach(match => {
+
+          if (program.jsonObj || jsonObj || globalJsonObj) {
+            if (findContext && match.groups.key === 'context') {
+              acc[locale].parsed[findContext].comment = match.groups.val;
+              findContext = false;
+              return;
+            }
+
+            if (match.groups.key === 'translation' && match.groups.realKey) {
+              match.groups.key = match.groups.realKey;
+              findContext = match.groups.key;
+            }
+          }
+
           acc[locale].parsed[match.groups.key] = Object.assign(String(match[0]), match.groups);
         });
         return acc;
