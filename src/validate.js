@@ -5,6 +5,7 @@ const parse = require('messageformat-parser').parse;
 const pluralCats = require('make-plural/pluralCategories');
 const { Reporter } = require('./reporter');
 
+const structureRegEx = /(?<=\s*){(.|\n)*?[{}]|\s*}(.|\n)*?[{}]|[{#]|(\s*)}/g;
 let reporter;
 
 function validateLocales({ locales, sourceLocale }) {
@@ -22,6 +23,7 @@ function validateLocales({ locales, sourceLocale }) {
       checkedKeys.push(key);
       const targetString = targetStrings?.[key].val;
       const sourceString = sourceStrings?.[key]?.val || '';
+      const overrides = Array.from(targetStrings?.[key].comment.matchAll(/mfv-(?<override>[a-z]+)/g)).map(m => m.groups.override)
 
       reporter.config(targetStrings[key], sourceStrings[key]);
 
@@ -31,7 +33,8 @@ function validateLocales({ locales, sourceLocale }) {
         targetString,
         targetLocale,
         sourceString,
-        sourceLocale
+        sourceLocale,
+        overrides
       });
 
     });
@@ -57,15 +60,16 @@ function validateLocales({ locales, sourceLocale }) {
   });
 }
 
-function validateString({ targetString, targetLocale, sourceString, sourceLocale }) {
+function validateString({ targetString, targetLocale, sourceString, sourceLocale, overrides }) {
 
-  const re = /[\u2000-\u206F\u2E00-\u2E7F\n\r\\'!"#$%&()*+,\-.\/:;<=>?@\[\]^_`{|}~]/g; // eslint-disable-line
+  const re = /[\u2000-\u206F\u2E00-\u2E7F\n\r\\'!"#$%&()*+,\-.\/∕:;<=>?@\[\]^_`{|}~]/g; // eslint-disable-line
 
   if (sourceLocale
     && targetLocale !== sourceLocale
     && targetString.replace(re,'') === sourceString.replace(re,'')) {
-    reporter.warning('untranslated', `String has not been translated.`)
-    return reporter.checks;
+      if (!overrides.includes('translated') && sourceString.replace(structureRegEx, '').replace(re,'').replace(/\s/g, '')) {
+        reporter.warning('untranslated', `String has not been translated.`);
+      }
   }
 
   let parsedTarget;
@@ -113,8 +117,7 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
     }
 
     // remove all translated content, leaving only the messageformat structure
-    const regx = new RegExp(targetMap.stringTokens.map(t => t.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).filter(s => s !== '\\ ').join('|'), 'g');
-    const structure = targetString.replace(regx, m => Array(m.length).fill(' ').join('')); // eslint-disable-line newline-per-chained-call
+    const structure = targetString.match(structureRegEx)?.join('') || '';
 
     const newlinePos = structure.indexOf(String.fromCharCode(10));
     if (newlinePos > -1) {
@@ -199,5 +202,6 @@ function _map(tokens, partsMap = { nested: false, arguments: new Set(), cases: [
 
 module.exports = {
   validateString,
-  validateLocales
+  validateLocales,
+  structureRegEx
 };
