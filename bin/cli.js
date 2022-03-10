@@ -120,11 +120,12 @@ localesPaths.forEach(localesPath => {
 
         const useJSONObj = program.jsonObj || jsonObj || globalJsonObj;
 
-        //             [                   ][  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][     value    ][        "        ][     ,    ][ // comment ]
         const regex = useJSONObj
-          ? /("(?<realKey>.*)"(\s?):(\s?){)*\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s?):(?<valSpace>\s?)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g
-          : /\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s?):(?<valSpace>\s?)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g;
-        const matches = Array.from(contents.matchAll(regex));//.map(m => m.groups);
+          //[                             ][  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][     value    ][        "        ][     ,    ][ // comment ]
+          ? /("(?<realKey>.*)"(\s*):(\s*){)*\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s*):(?<valSpace>\s*)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g
+          //[  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][     value    ][        "        ][     ,    ][ // comment ]
+          : /\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s*):(?<valSpace>\s*)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g;
+        const matches = Array.from(contents.matchAll(regex));
 
         let findContext = false;
         let findValue = false;
