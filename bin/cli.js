@@ -14,7 +14,7 @@ const findConfig = require('find-config');
 const configPath = findConfig('mfv.config.json');
 const { version } = require('../package.json');
 const { path, source: globalSource, locales: globalLocales, jsonObj: globalJsonObj } = configPath ? require(configPath) : {};
-const { validateLocales } = require('../src/validate');
+const { validateLocales, structureRegEx } = require('../src/validate');
 
 require = require('esm')(module) // eslint-disable-line
 
@@ -172,8 +172,6 @@ localesPaths.forEach(localesPath => {
           .replace(/\t/g, '··')
           .replace(/\n/g, '␤\n');
 
-        const re = /(?<=\s*){(.|\n)*?({|})|\s*}(.|\n)*?{|[{#]|(\s*)}/g;
-
         Object.keys(locales).forEach(locale => {
           if ((!allowedLocales || allowedLocales.includes(locale)) && locales[locale].parsed[program.highlight]) {
             const str = String(locales[locale].parsed[program.highlight].val);
@@ -182,7 +180,7 @@ localesPaths.forEach(localesPath => {
             let prevEnd = 0;
             const sections = [];
 
-            while((match = re.exec(str)) !== null) {
+            while((match = structureRegEx.exec(str)) !== null) {
               sections.push(showWS(str.substring(prevEnd, match.index)));
               sections.push(chalk.red(showWS(str.substr(match.index, match[0].length))));
               prevEnd = match.index + match[0].length;
