@@ -130,9 +130,10 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
     }
 
     if (targetMap.cases.join(',') !== sourceMap.cases.join(',')) {
-      const caseDiff = Array.from(targetMap.cases.map(c => c.replace(/(?<=\|plural\|).*/, ''))).filter(arg => !Array.from(sourceMap.cases).map(c => c.replace(/(?<=\|plural\|).*/, '')).includes(arg));
+      const caseDiff = Array.from(targetMap.cases.map(c => c.replace(/(?<=\|(plural|selectordinal)\|).*/, ''))).filter(arg => !Array.from(sourceMap.cases).map(c => c.replace(/(?<=\|(plural|selectordinal)\|).*/, '')).includes(arg));
+
       if (caseDiff.length) {
-        reporter.error('case', `Unrecognized cases ${JSON.stringify(caseDiff.map(c => c.replace('|plural|', '')))}`);
+        reporter.error('case', `Unrecognized cases ${JSON.stringify(caseDiff.map(c => c.replace(/\|(plural|selectordinal)\|/, '')))}`);
       }
       else if (targetMap.nested && targetMap.cases.length === sourceMap.cases.length) {
         // TODO: better identify case order vs nesting order
@@ -140,11 +141,11 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
       }
     }
 
-    const hasPlural = targetMap.cases.find(c => c.startsWith('|plural|'));
+    const hasPlural = targetMap.cases.find(c => Boolean(c.match(/^\|(plural|selectordinal)\|/)));
     const lastItem = targetMap.cases[targetMap.cases.length - 1];
 
-    if (hasPlural && !lastItem.startsWith('|plural|')) {
-      reporter.warning('nest', 'Plurals should always nest inside selects.');
+    if (hasPlural && !lastItem.match(/^\|(plural|selectordinal)\|/)) {
+      reporter.warning('nest', '"plural" and "selectordinal" should always nest inside "select".');
     }
 
     if (targetTokens.length > 1) {
@@ -173,17 +174,11 @@ function _map(tokens, partsMap = { nested: false, arguments: new Set(), cases: [
         }
 
         token.cases.forEach((case_) => {
-
           switch (token.type) {
             case 'select':
-
-            partsMap.cases.push('|select|', case_.key);
-
-            break;
             case 'plural':
-
-            partsMap.cases.push('|plural|' + case_.key);
-
+            case 'selectordinal':
+            partsMap.cases.push(`|${token.type}|${case_.key}`);
             break;
           }
 
