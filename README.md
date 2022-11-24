@@ -4,13 +4,32 @@ Validates messageformat strings against various errors and warnings.
 
 ## Install
 
-```
+```shell
 npm i messageformat-validator
 ```
 
 ## Usage
 
-`mfv [options] [command]`
+```shell
+mfv [options] [subcommand]
+```
+
+### Examples
+
+Check for issues in all files within `lang/`
+```shell
+mfv -s en -p lang/
+```
+
+Add strings that exist in `en` to all files witin `lang/`, if they are missing
+```shell
+mfv -s en -p lang/ add-missing
+```
+
+Output the `example-translation` string from the `es-es` file with all messageformat structure highlighted
+```shell
+mfv -l es-es -p lang/ highlight example-translation
+```
 
 ### Options:
 
@@ -34,7 +53,7 @@ npm i messageformat-validator
   
 `-h, --help` - display help for command
 
-### Commands:
+### Subommands:
   
 `remove-extraneous` - Remove strings that do not exist in the source locale
   
@@ -48,6 +67,16 @@ npm i messageformat-validator
   
 `help [command]` - display help for command
 
+## Config File
+
+Some options can be configured with default values in `mfv.config.json`
+```json
+{
+  "source": "en"
+  "path": "lang/",
+  "locales": "ar,de,en,es,es-es,hi,tr"
+}
+```
 
 ## Errors
 
