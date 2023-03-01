@@ -22,7 +22,7 @@
     "commander": "^6.1.0",
     "esm": "^3.2.25",
     "find-config": "^1.0.0",
-    "glob": "^7.1.6",
+    "glob": "^9.1.0",
     "make-plural": "^6.2.2",
     "messageformat-parser": "^4.1.3"
   }
