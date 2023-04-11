@@ -72,7 +72,10 @@ program
 
 program.parse(process.argv);
 
-const localesPaths = glob.sync(program.path || path);
+const pathCombined = program.path || path;
+if (!pathCombined) throw new Error('Must provide a path to the locale files using either the -p option or a config file.');
+
+const localesPaths = glob.sync(pathCombined);
 localesPaths.forEach(localesPath => {
 
   const absLocalesPath = `${process.cwd()}/${localesPath}`;
