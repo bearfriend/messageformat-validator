@@ -117,6 +117,7 @@ localesPaths.forEach(localesPath => {
         const locale = file.split('.')[0];
         acc[locale] = {
           contents,
+          duplicateKeys: new Set(),
           parsed: {},
           file
         };
@@ -164,6 +165,8 @@ localesPaths.forEach(localesPath => {
 
           if (!acc[locale].parsed[match.groups.key]) {
             acc[locale].parsed[match.groups.key] = Object.assign(String(match[0]), match.groups);
+          } else {
+            acc[locale].duplicateKeys.add(match.groups.key);
           }
         });
         return acc;
