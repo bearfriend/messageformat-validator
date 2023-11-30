@@ -29,6 +29,8 @@ function validateLocales({ locales, sourceLocale }) {
 
       if (!sourceString) reporter.error('extraneous', 'This string does not exist in the source file.');
 
+      if (locales[targetLocale].duplicateKeys.has(key)) reporter.error('duplicate-keys', 'Key appears multiple times');
+
       validateString({
         targetString,
         targetLocale,
