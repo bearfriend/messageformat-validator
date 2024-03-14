@@ -1,14 +1,10 @@
-'use strict';
+import { Reporter } from './reporter.js';
+import { parse } from 'messageformat-parser';
 
-const crypto = require('crypto');
-const parse = require('messageformat-parser').parse;
-const pluralCats = require('make-plural/pluralCategories');
-const { Reporter } = require('./reporter');
-
-const structureRegEx = /(?<=\s*){(.|\n)*?[{}]|\s*}(.|\n)*?[{}]|[{#]|(\s*)}/g;
+export const structureRegEx = /(?<=\s*){(.|\n)*?[{}]|\s*}(.|\n)*?[{}]|[{#]|(\s*)}/g;
 let reporter;
 
-function validateLocales({ locales, sourceLocale }) {
+export function validateLocales({ locales, sourceLocale }) {
 
   const sourceStrings = locales[sourceLocale].parsed;
 
@@ -45,8 +41,6 @@ function validateLocales({ locales, sourceLocale }) {
 
     if (missingKeys.length) {
       missingKeys.forEach((key) => {
-        const sourceString = sourceStrings?.[key]?.val || '';
-
         reporter.config(sourceStrings[key], sourceStrings[key]);
         reporter.error('missing', `String missing from locale file.`)
       })
@@ -62,21 +56,29 @@ function validateLocales({ locales, sourceLocale }) {
   });
 }
 
-function validateString({ targetString, targetLocale, sourceString, sourceLocale, overrides }) {
+export function validateString({ targetString, targetLocale, sourceString, sourceLocale, overrides }) {
 
   const re = /[\u2000-\u206F\u2E00-\u2E7F\n\r\\'!"#$%&()*+,\-.\/∕:;<=>?@\[\]^_`{|}~]/g; // eslint-disable-line
 
   if (sourceLocale
     && targetLocale !== sourceLocale
     && targetString.replace(re,'') === sourceString.replace(re,'')) {
-      if (!overrides.includes('translated') && sourceString.replace(structureRegEx, '').replace(re,'').replace(/\s/g, '')) {
+
+      if (!overrides.includes('translated')
+        && sourceString
+          .replace(structureRegEx, '')
+          .replace(re,'')
+          .replace(/\s/g, '')) {
+
         reporter.warning('untranslated', `String has not been translated.`);
       }
   }
 
   let parsedTarget;
   try {
-    parsedTarget = Object.freeze(parse(targetString, pluralCats[targetLocale.split('-')[0]]));
+    const pluralCats = new Intl.PluralRules(targetLocale, { type: 'cardinal' }).resolvedOptions().pluralCategories;
+    const ordinalCats = new Intl.PluralRules(targetLocale, { type: 'ordinal' }).resolvedOptions().pluralCategories;
+    parsedTarget = Object.freeze(parse(targetString, { pluralCats, ordinalCats }));
   }
   catch(e) {
 
@@ -101,7 +103,9 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
     let sourceTokens;
 
     try {
-      sourceTokens = parse(sourceString, pluralCats[sourceLocale]);
+      const pluralCats = new Intl.PluralRules(sourceLocale, { type: 'cardinal' }).resolvedOptions().pluralCategories;
+      const ordinalCats = new Intl.PluralRules(sourceLocale, { type: 'ordinal' }).resolvedOptions().pluralCategories;
+      sourceTokens = parse(sourceString, { pluralCats, ordinalCats });
     }
     catch(e) {
       reporter.error('source-error', 'Failed to parse source string.');
@@ -112,7 +116,7 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
     const sourceMap = _map(sourceTokens);
 
     const argDiff = Array.from(targetMap.arguments).filter(arg => !Array.from(sourceMap.arguments).includes(arg));
-    
+
     const badArgPos = targetString.indexOf(argDiff[0]);
     if (argDiff.length) {
       reporter.error('argument', `Unrecognized arguments ${JSON.stringify(argDiff)}`, { column: badArgPos });
@@ -132,7 +136,10 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
     }
 
     if (targetMap.cases.join(',') !== sourceMap.cases.join(',')) {
-      const caseDiff = Array.from(targetMap.cases.map(c => c.replace(/(?<=\|(plural|selectordinal)\|).*/, ''))).filter(arg => !Array.from(sourceMap.cases).map(c => c.replace(/(?<=\|(plural|selectordinal)\|).*/, '')).includes(arg));
+
+      const cleanTargetCases = targetMap.cases.map(c => c.replace(/(?<=\|(plural|selectordinal)\|).*/, ''));
+      const cleanSourceCases = sourceMap.cases.map(c => c.replace(/(?<=\|(plural|selectordinal)\|).*/, ''));
+      const caseDiff = cleanTargetCases.filter(arg => !cleanSourceCases.includes(arg));
 
       if (caseDiff.length) {
         reporter.error('case', `Unrecognized cases ${JSON.stringify(caseDiff.map(c => c.replace(/\|(plural|selectordinal)\|/, '')))}`);
@@ -196,9 +203,3 @@ function _map(tokens, partsMap = { nested: false, arguments: new Set(), cases: [
 
   return partsMap;
 }
-
-module.exports = {
-  validateString,
-  validateLocales,
-  structureRegEx
-};
