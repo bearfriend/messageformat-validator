@@ -77,7 +77,7 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
 
   let parsedTarget;
   try {
-    parsedTarget = Object.freeze(parse(targetString, pluralCats[targetLocale]));
+    parsedTarget = Object.freeze(parse(targetString, pluralCats[targetLocale.split('-')[0]));
   }
   catch(e) {
 
@@ -102,7 +102,7 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
     let sourceTokens;
 
     try {
-      sourceTokens = parse(sourceString, pluralCats[sourceLocale]);
+      sourceTokens = parse(sourceString, pluralCats[sourceLocale.split('-')[0]]);
     }
     catch(e) {
       msgReporter.error('source-error', 'Failed to parse source string.');
