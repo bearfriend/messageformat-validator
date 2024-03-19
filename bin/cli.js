@@ -11,7 +11,7 @@ import pkg from '../package.json' with { type: 'json' };
 import { validateLocales, parseLocales, structureRegEx } from '../src/validate.js';
 
 const configPath = findConfig('mfv.config.json');
-const { path, source: globalSource, locales: globalLocales, jsonObj: globalJsonObj } = configPath ? await import(configPath) : {};
+const { path, source: globalSource, locales: globalLocales, jsonObj: globalJsonObj } = configPath ? (await import(configPath, { with: { type: 'json' }}))?.default : {};
 
 program
   .version(pkg.version)
@@ -70,8 +70,6 @@ program.parse(process.argv);
 const pathCombined = program.path || path;
 if (!pathCombined) throw new Error('Must provide a path to the locale files using either the -p option or a config file.');
 
-const useJSONObj = program.jsonObj || jsonObj || globalJsonObj;
-
 const localesPaths = glob.sync(pathCombined);
 localesPaths.forEach(async localesPath => {
 
@@ -79,7 +77,7 @@ localesPaths.forEach(async localesPath => {
 
   const subConfigPath = findConfig('mfv.config.json', { cwd: absLocalesPath });
 
-  const { source, locales: configLocales, jsonObj } = subConfigPath ? await import(subConfigPath) : {}; /* eslint-disable-line global-require */
+  const { source, locales: configLocales, jsonObj } = subConfigPath ? await import(subConfigPath, { with: { type: 'json' }}) : {}; /* eslint-disable-line global-require */
 
   const files = await readdir(absLocalesPath).catch(err => console.log(`Failed to read ${absLocalesPath}`));
   if (!files) return;
@@ -106,15 +104,16 @@ localesPaths.forEach(async localesPath => {
 
   const resources = await Promise.all(filteredFiles.map(file => readFile(absLocalesPath + file, 'utf8')))
     .then(files => files.map((contents, idx) => ({
-      file: filteredFiles[idx]
+      file: filteredFiles[idx],
       contents
-    }))
+    })))
     .catch(err => {
       console.error(err);
       process.exitCode = 1;
     });
-
   if (!resources) return;
+
+  const useJSONObj = program.jsonObj || jsonObj || globalJsonObj;
 
   const locales = parseLocales(resources, useJSONObj);
 

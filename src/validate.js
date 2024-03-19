@@ -64,7 +64,7 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
     && targetLocale !== sourceLocale
     && targetString.replace(re,'') === sourceString.replace(re,'')) {
 
-      if (!overrides.includes('translated')
+      if (!overrides?.includes('translated')
         && sourceString
           .replace(structureRegEx, '')
           .replace(re,'')
