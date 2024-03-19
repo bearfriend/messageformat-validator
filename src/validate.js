@@ -166,6 +166,66 @@ export function validateString({ targetString, targetLocale, sourceString, sourc
   }
 }
 
+export function parseLocales(locales, useJSONObj) {
+  return locales.reduce((acc, { contents, file }) => {
+    const locale = file.split('.')[0];
+    acc[locale] = {
+      contents,
+      duplicateKeys: new Set(),
+      parsed: {},
+      file
+    };
+
+    const regex = useJSONObj
+      //[                             ][  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][     value    ][        "        ][     ,    ][ // comment ]
+      ? /("(?<realKey>.*)"(\s*):(\s*){)*\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s*):(?<valSpace>\s*)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g
+      //[  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][     value    ][        "        ][     ,    ][ // comment ]
+      : /\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s*):(?<valSpace>\s*)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g;
+    const matches = Array.from(contents.matchAll(regex));
+
+    let findContext = false;
+    let findValue = false;
+
+    matches.forEach(match => {
+
+      if (useJSONObj) {
+        if (findContext && match.groups.key === 'context') {
+          acc[locale].parsed[findContext].comment = match.groups.val;
+          findContext = false;
+          return;
+        }
+
+        if (findValue && match.groups.key === 'translation') {
+          acc[locale].parsed[findValue].val = match.groups.val;
+          findValue = false;
+          return;
+        }
+
+        if (match.groups.realKey) {
+
+          if (match.groups.key === 'translation') {
+            findContext = match.groups.realKey;
+          }
+          if (match.groups.key === 'context') {
+            match.groups.comment = match.groups.val;
+            findValue = match.groups.realKey;
+          }
+
+          match.groups.key = match.groups.realKey;
+        }
+      }
+
+      if (!acc[locale].parsed[match.groups.key]) {
+        acc[locale].parsed[match.groups.key] = Object.assign(String(match[0]), match.groups);
+      }
+      else {
+        acc[locale].duplicateKeys.add(match.groups.key);
+      }
+    });
+    return acc;
+  }, {});
+}
+
 function _map(tokens, partsMap = { nested: false, arguments: new Set(), cases: [], stringTokens: [] }) {
 
   tokens.forEach(token => {

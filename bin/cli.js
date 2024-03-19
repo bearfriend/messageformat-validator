@@ -8,7 +8,7 @@ import glob from 'glob';
 import { program } from 'commander';
 import findConfig from 'find-config';
 import pkg from '../package.json' with { type: 'json' };
-import { validateLocales, structureRegEx } from '../src/validate.js';
+import { validateLocales, parseLocales, structureRegEx } from '../src/validate.js';
 
 const configPath = findConfig('mfv.config.json');
 const { path, source: globalSource, locales: globalLocales, jsonObj: globalJsonObj } = configPath ? await import(configPath) : {};
@@ -70,6 +70,8 @@ program.parse(process.argv);
 const pathCombined = program.path || path;
 if (!pathCombined) throw new Error('Must provide a path to the locale files using either the -p option or a config file.');
 
+const useJSONObj = program.jsonObj || jsonObj || globalJsonObj;
+
 const localesPaths = glob.sync(pathCombined);
 localesPaths.forEach(async localesPath => {
 
@@ -102,73 +104,19 @@ localesPaths.forEach(async localesPath => {
     console.log(`Renaming "${program.oldKey}" to "${program.newKey}" in:`, targetLocales.join(', '));
   }
 
-  const res = await Promise.all(filteredFiles.map(file => readFile(absLocalesPath + file, 'utf8')))
+  const resources = await Promise.all(filteredFiles.map(file => readFile(absLocalesPath + file, 'utf8')))
+    .then(files => files.map((contents, idx) => ({
+      file: filteredFiles[idx]
+      contents
+    }))
     .catch(err => {
       console.error(err);
       process.exitCode = 1;
     });
 
-  if (!res) return;
+  if (!resources) return;
 
-  const locales = res.reduce((acc, contents, idx) => {
-    const file = filteredFiles[idx];
-    const locale = file.split('.')[0];
-    acc[locale] = {
-      contents,
-      duplicateKeys: new Set(),
-      parsed: {},
-      file
-    };
-
-    const useJSONObj = program.jsonObj || jsonObj || globalJsonObj;
-
-    const regex = useJSONObj
-      //[                             ][  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][     value    ][        "        ][     ,    ][ // comment ]
-      ? /("(?<realKey>.*)"(\s*):(\s*){)*\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s*):(?<valSpace>\s*)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g
-      //[  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][     value    ][        "        ][     ,    ][ // comment ]
-      : /\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s*):(?<valSpace>\s*)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g;
-    const matches = Array.from(contents.matchAll(regex));
-
-    let findContext = false;
-    let findValue = false;
-
-    matches.forEach(match => {
-
-      if (useJSONObj) {
-        if (findContext && match.groups.key === 'context') {
-          acc[locale].parsed[findContext].comment = match.groups.val;
-          findContext = false;
-          return;
-        }
-
-        if (findValue && match.groups.key === 'translation') {
-          acc[locale].parsed[findValue].val = match.groups.val;
-          findValue = false;
-          return;
-        }
-
-        if (match.groups.realKey) {
-
-          if (match.groups.key === 'translation') {
-            findContext = match.groups.realKey;
-          }
-          if (match.groups.key === 'context') {
-            match.groups.comment = match.groups.val;
-            findValue = match.groups.realKey;
-          }
-
-          match.groups.key = match.groups.realKey;
-        }
-      }
-
-      if (!acc[locale].parsed[match.groups.key]) {
-        acc[locale].parsed[match.groups.key] = Object.assign(String(match[0]), match.groups);
-      } else {
-        acc[locale].duplicateKeys.add(match.groups.key);
-      }
-    });
-    return acc;
-  }, {});
+  const locales = parseLocales(resources, useJSONObj);
 
   if (program.highlight) {
 
