@@ -77,7 +77,7 @@ localesPaths.forEach(async localesPath => {
 
   const subConfigPath = findConfig('mfv.config.json', { cwd: absLocalesPath });
 
-  const { source, locales: configLocales, jsonObj } = subConfigPath ? await import(subConfigPath, { with: { type: 'json' }}) : {}; /* eslint-disable-line global-require */
+  const { source, locales: configLocales, jsonObj } = subConfigPath ? (await import(subConfigPath, { with: { type: 'json' }}))?.default : {}; /* eslint-disable-line global-require */
 
   const files = await readdir(absLocalesPath).catch(err => console.log(`Failed to read ${absLocalesPath}`));
   if (!files) return;
