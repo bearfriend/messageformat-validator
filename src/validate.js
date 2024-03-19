@@ -92,7 +92,7 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
       msgReporter.error('brace', 'Mismatched braces (i.e. {}). ' + e.message, { column: e.location.start.column });
     }
     else {
-      msgReporter.error('parse', e.message, { column: e.location.start.column });
+      msgReporter.error('parse', e.message, { column: e.location.start.column - 1 });
     }
   }
 
@@ -150,7 +150,6 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
     }
 
     if (targetTokens.length > 1) {
-
       if (targetLocale == sourceLocale && targetTokens.find((token) => typeof token !== 'string' && token.type.match(/plural|select/))) {
         msgReporter.warning('split','String split by non-argument (e.g. select; plural).')
       }

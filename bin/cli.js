@@ -289,6 +289,7 @@ localesPaths.forEach(async localesPath => {
   });
 
   if (program.throwErrors && output.some(locale => locale.report.totals.errors)) {
-    throw new Error('Errors were reported in at least one locale. See details above.');
+    console.error('\nErrors were reported in at least one locale. See details above.');
+    process.exitCode = 1;
   }
 });
