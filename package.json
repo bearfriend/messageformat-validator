@@ -16,6 +16,12 @@
   "bin": {
     "mfv": "bin/cli.js"
   },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "/src"
+  ],
   "author": "Daniel Gleckler <daniel.gleckler@gmail.com>",
   "license": "MIT",
   "dependencies": {

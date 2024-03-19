@@ -1,4 +1,4 @@
-export function Reporter(locale, fileContents) {
+export function Reporter(locale, fileContents = '') {
   this.locale = locale;
   this.fileContents = fileContents;
   this.report = { totals: { errors: 0, warnings: 0 } };
