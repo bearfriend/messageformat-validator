@@ -22,10 +22,6 @@ Reporter.prototype.log = function(level, type, msg, column = 0, line) {
 
   const start = Math.max(this.config.fileContents.indexOf(this.config.target), 0) + column;
   const newlines = this.config.target.split(this.config.target.val)[0].match(/\n/)?.length || 0;
-  if (level === 'error') {
-    console.log('Start:', start);
-    console.log(newlines);
-  }
   line = line || this.config.fileContents.substring(0, start).split('\n').length + newlines;
 
   const issue = {

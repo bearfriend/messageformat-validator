@@ -77,7 +77,7 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
 
   let parsedTarget;
   try {
-    parsedTarget = Object.freeze(parse(targetString, pluralCats[targetLocale.split('-')[0]));
+    parsedTarget = Object.freeze(parse(targetString, pluralCats[targetLocale.split('-')[0]]));
   }
   catch(e) {
 
