@@ -1,3 +1,4 @@
+import * as pluralCats from 'make-plural/pluralCategories'
 import { Reporter } from './reporter.js';
 import { parse } from 'messageformat-parser';
 
@@ -76,9 +77,7 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
 
   let parsedTarget;
   try {
-    const pluralCats = new Intl.PluralRules(targetLocale, { type: 'cardinal' }).resolvedOptions().pluralCategories;
-    const ordinalCats = new Intl.PluralRules(targetLocale, { type: 'ordinal' }).resolvedOptions().pluralCategories;
-    parsedTarget = Object.freeze(parse(targetString, { pluralCats, ordinalCats }));
+    parsedTarget = Object.freeze(parse(targetString, pluralCats[targetLocale]));
   }
   catch(e) {
 
@@ -103,9 +102,7 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
     let sourceTokens;
 
     try {
-      const pluralCats = new Intl.PluralRules(sourceLocale, { type: 'cardinal' }).resolvedOptions().pluralCategories;
-      const ordinalCats = new Intl.PluralRules(sourceLocale, { type: 'ordinal' }).resolvedOptions().pluralCategories;
-      sourceTokens = parse(sourceString, { pluralCats, ordinalCats });
+      sourceTokens = parse(sourceString, pluralCats[sourceLocale]);
     }
     catch(e) {
       msgReporter.error('source-error', 'Failed to parse source string.');
