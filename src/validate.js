@@ -125,11 +125,6 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
     // remove all translated content, leaving only the messageformat structure
     const structure = targetString.match(structureRegEx)?.join('') || '';
 
-    const newlinePos = structure.indexOf(String.fromCharCode(10));
-    if (newlinePos > -1) {
-      msgReporter.warning('newline', 'String contains unnecessary newline(s).', { column: newlinePos });
-    }
-
     const nbspPos = structure.indexOf(String.fromCharCode(160));
     if (nbspPos > -1) {
       msgReporter.error('nbsp', `String contains invalid non-breaking space at position ${nbspPos}.`, { column: nbspPos });
