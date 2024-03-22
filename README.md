@@ -100,9 +100,7 @@ Some options can be configured with default values in `mfv.config.json`
 
 ## Warnings
 
-`newline` - There are unnecessary newline characters in the target string.
-
-`nest` - There is a `plural` nested inside a `select` in the target string.
+`nest` - There is a `select` nested inside a `plural` or `selectordinal` in the target string.
 
 `split` - The target string is split by a non-argument. `plural` and `select` cases should contain complete sentences/strings.
 
