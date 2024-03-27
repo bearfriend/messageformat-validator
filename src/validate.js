@@ -109,6 +109,20 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
       return;
     }
 
+    const checkOther = target => {
+      target?.forEach(part => {
+        if (['select', 'selectordinal', 'plural'].includes(part.type)) {
+          const hasOther = part.cases.find(c => c.key === 'other');
+          if (!hasOther) {
+            msgReporter.error('other', 'Missing "other" case');
+          }
+        }
+        checkOther(target.cases);
+      });
+    };
+
+    checkOther(parsedTarget);
+
     const targetMap = _map(targetTokens);
     const sourceMap = _map(sourceTokens);
 
