@@ -2,6 +2,10 @@ import * as pluralCats from 'make-plural/pluralCategories'
 import { Reporter } from './reporter.js';
 import { parse } from 'messageformat-parser';
 
+function getPluralCats(locale) {
+  return pluralCats[locale.split('-')[0]] || pluralCats.en;
+}
+
 export const structureRegEx = /(?<=\s*){(.|\n)*?[{}]|\s*}(.|\n)*?[{}]|[{#]|(\s*)}/g;
 let reporter;
 
@@ -62,7 +66,7 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
   const re = /[\u2000-\u206F\u2E00-\u2E7F\n\r\\'!"#$%&()*+,\-.\/∕:;<=>?@\[\]^_`{|}~]/g; // eslint-disable-line
 
   if (sourceLocale
-    && targetLocale !== sourceLocale
+    && targetLocale.split('-')[0] !== sourceLocale.split('-')[0]
     && targetString.replace(re,'') === sourceString.replace(re,'')) {
 
       if (!overrides?.includes('translated')
@@ -77,7 +81,7 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
 
   let parsedTarget;
   try {
-    parsedTarget = Object.freeze(parse(targetString, pluralCats[targetLocale.split('-')[0]]));
+    parsedTarget = Object.freeze(parse(targetString, getPluralCats(targetLocale)));
   }
   catch(e) {
 
@@ -102,26 +106,34 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
     let sourceTokens;
 
     try {
-      sourceTokens = parse(sourceString, pluralCats[sourceLocale.split('-')[0]]);
+      sourceTokens = parse(sourceString, getPluralCats(sourceLocale));
     }
     catch(e) {
       msgReporter.error('source-error', 'Failed to parse source string.');
       return;
     }
 
-    const checkOther = target => {
+    const checkCases = target => {
       target?.forEach(part => {
         if (['select', 'selectordinal', 'plural'].includes(part.type)) {
           const hasOther = part.cases.find(c => c.key === 'other');
           if (!hasOther) {
             msgReporter.error('other', 'Missing "other" case');
           }
+
+          if (part.type !== 'select') {
+            const pluralType = part.type.includes('ordinal') ? 'ordinal' : 'cardinal';
+            const allowedCats = getPluralCats(targetLocale)[pluralType];
+            const cats = part.cases.map(c => c.key);
+            const missingCats = allowedCats.filter(c => c !== 'other' && !cats.includes(c));
+            if (missingCats.length) msgReporter.warning('categories', `Missing categories: ${JSON.stringify(missingCats)}`);
+          }
         }
-        checkOther(target.cases);
+        checkCases(target.cases);
       });
     };
 
-    checkOther(parsedTarget);
+    checkCases(parsedTarget);
 
     const targetMap = _map(targetTokens);
     const sourceMap = _map(sourceTokens);

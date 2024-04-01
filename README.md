@@ -103,6 +103,8 @@ Some options can be configured with default values in `mfv.config.json`
 
 ## Warnings
 
+`categories` - The target message is missing plural categories used in the target locale
+
 `nest` - There is a `select` nested inside a `plural` or `selectordinal` in the target message.
 
 `split` - The target message is split by a non-argument. `plural`, `selectordinal`, and `select` cases should contain complete translations.
