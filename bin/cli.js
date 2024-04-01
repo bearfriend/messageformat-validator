@@ -11,7 +11,8 @@ import pkg from '../package.json' with { type: 'json' };
 import { validateLocales, parseLocales, structureRegEx } from '../src/validate.js';
 
 const configPath = findConfig('mfv.config.json');
-const { path, source: globalSource, locales: globalLocales, jsonObj: globalJsonObj } = configPath ? (await import(configPath, { with: { type: 'json' }}))?.default : {};
+console.log(configPath);
+const { path, source: globalSource, locales: globalLocales, jsonObj: globalJsonObj } = configPath ? (await import(`file://${configPath}`, { with: { type: 'json' }}))?.default : {};
 
 program
   .version(pkg.version)
@@ -77,7 +78,7 @@ localesPaths.forEach(async localesPath => {
 
   const subConfigPath = findConfig('mfv.config.json', { cwd: absLocalesPath });
 
-  const { source, locales: configLocales, jsonObj } = subConfigPath ? (await import(subConfigPath, { with: { type: 'json' }}))?.default : {}; /* eslint-disable-line global-require */
+  const { source, locales: configLocales, jsonObj } = subConfigPath ? (await import(`file://${subConfigPath}`, { with: { type: 'json' }}))?.default : {}; /* eslint-disable-line global-require */
 
   const files = await readdir(absLocalesPath).catch(err => console.log(`Failed to read ${absLocalesPath}`));
   if (!files) return;
