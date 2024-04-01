@@ -11,7 +11,6 @@ import pkg from '../package.json' with { type: 'json' };
 import { validateLocales, parseLocales, structureRegEx } from '../src/validate.js';
 
 const configPath = findConfig('mfv.config.json');
-console.log(configPath);
 const { path, source: globalSource, locales: globalLocales, jsonObj: globalJsonObj } = configPath ? (await import(`file://${configPath}`, { with: { type: 'json' }}))?.default : {};
 
 program
