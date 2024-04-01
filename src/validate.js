@@ -1,14 +1,15 @@
-'use strict';
+import * as pluralCats from 'make-plural/pluralCategories'
+import { Reporter } from './reporter.js';
+import { parse } from 'messageformat-parser';
 
-const crypto = require('crypto');
-const parse = require('messageformat-parser').parse;
-const pluralCats = require('make-plural/pluralCategories');
-const { Reporter } = require('./reporter');
+function getPluralCats(locale) {
+  return pluralCats[locale.split('-')[0]] || pluralCats.en;
+}
 
-const structureRegEx = /(?<=\s*){(.|\n)*?[{}]|\s*}(.|\n)*?[{}]|[{#]|(\s*)}/g;
+export const structureRegEx = /(?<=\s*){(.|\n)*?[{}]|\s*}(.|\n)*?[{}]|[{#]|(\s*)}/g;
 let reporter;
 
-function validateLocales({ locales, sourceLocale }) {
+export function validateLocales({ locales, sourceLocale }) {
 
   const sourceStrings = locales[sourceLocale].parsed;
 
@@ -31,7 +32,7 @@ function validateLocales({ locales, sourceLocale }) {
 
       if (locales[targetLocale].duplicateKeys.has(key)) reporter.error('duplicate-keys', 'Key appears multiple times');
 
-      validateString({
+      validateMessage({
         targetString,
         targetLocale,
         sourceString,
@@ -45,8 +46,6 @@ function validateLocales({ locales, sourceLocale }) {
 
     if (missingKeys.length) {
       missingKeys.forEach((key) => {
-        const sourceString = sourceStrings?.[key]?.val || '';
-
         reporter.config(sourceStrings[key], sourceStrings[key]);
         reporter.error('missing', `String missing from locale file.`)
       })
@@ -62,21 +61,27 @@ function validateLocales({ locales, sourceLocale }) {
   });
 }
 
-function validateString({ targetString, targetLocale, sourceString, sourceLocale, overrides }) {
+export function validateMessage({ targetString, targetLocale, sourceString, sourceLocale, overrides }, msgReporter = reporter) {
 
   const re = /[\u2000-\u206F\u2E00-\u2E7F\n\r\\'!"#$%&()*+,\-.\/∕:;<=>?@\[\]^_`{|}~]/g; // eslint-disable-line
 
   if (sourceLocale
-    && targetLocale !== sourceLocale
+    && targetLocale.split('-')[0] !== sourceLocale.split('-')[0]
     && targetString.replace(re,'') === sourceString.replace(re,'')) {
-      if (!overrides.includes('translated') && sourceString.replace(structureRegEx, '').replace(re,'').replace(/\s/g, '')) {
-        reporter.warning('untranslated', `String has not been translated.`);
+
+      if (!overrides?.includes('translated')
+        && sourceString
+          .replace(structureRegEx, '')
+          .replace(re,'')
+          .replace(/\s/g, '')) {
+
+        msgReporter.warning('untranslated', `String has not been translated.`);
       }
   }
 
   let parsedTarget;
   try {
-    parsedTarget = Object.freeze(parse(targetString, pluralCats[targetLocale.split('-')[0]]));
+    parsedTarget = Object.freeze(parse(targetString, getPluralCats(targetLocale)));
   }
   catch(e) {
 
@@ -85,13 +90,13 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
       const badKey = backtickCaptures[0].slice(1, -1);
       const pluralArg = backtickCaptures[1].slice(1, -1)
       const column = targetString.indexOf(badKey, targetString.indexOf(`{${pluralArg}, plural, {`));
-      reporter.error('plural-key', e.message, { column });
+      msgReporter.error('plural-key', e.message, { column });
     }
     else if ((targetString.match(/{/g) || 0).length !== (targetString.match(/}/g) || 0).length) {
-      reporter.error('brace', 'Mismatched braces (i.e. {}). ' + e.message, { column: e.location.start.column });
+      msgReporter.error('brace', 'Mismatched braces (i.e. {}). ' + e.message, { column: e.location.start.column });
     }
     else {
-      reporter.error('parse', e.message, { column: e.location.start.column });
+      msgReporter.error('parse', e.message, { column: e.location.start.column - 1 });
     }
   }
 
@@ -101,45 +106,65 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
     let sourceTokens;
 
     try {
-      sourceTokens = parse(sourceString, pluralCats[sourceLocale]);
+      sourceTokens = parse(sourceString, getPluralCats(sourceLocale));
     }
     catch(e) {
-      reporter.error('source-error', 'Failed to parse source string.');
+      msgReporter.error('source-error', 'Failed to parse source string.');
       return;
     }
+
+    const checkCases = target => {
+      target?.forEach(part => {
+        if (['select', 'selectordinal', 'plural'].includes(part.type)) {
+          const hasOther = part.cases.find(c => c.key === 'other');
+          if (!hasOther) {
+            msgReporter.error('other', 'Missing "other" case');
+          }
+
+          if (part.type !== 'select') {
+            const pluralType = part.type.includes('ordinal') ? 'ordinal' : 'cardinal';
+            const allowedCats = getPluralCats(targetLocale)[pluralType];
+            const cats = part.cases.map(c => c.key);
+            const missingCats = allowedCats.filter(c => c !== 'other' && !cats.includes(c));
+            if (missingCats.length) msgReporter.warning('categories', `Missing categories: ${JSON.stringify(missingCats)}`);
+          }
+        }
+        checkCases(target.cases);
+      });
+    };
+
+    checkCases(parsedTarget);
 
     const targetMap = _map(targetTokens);
     const sourceMap = _map(sourceTokens);
 
     const argDiff = Array.from(targetMap.arguments).filter(arg => !Array.from(sourceMap.arguments).includes(arg));
-    
+
     const badArgPos = targetString.indexOf(argDiff[0]);
     if (argDiff.length) {
-      reporter.error('argument', `Unrecognized arguments ${JSON.stringify(argDiff)}`, { column: badArgPos });
+      msgReporter.error('argument', `Unrecognized arguments ${JSON.stringify(argDiff)}`, { column: badArgPos });
     }
 
     // remove all translated content, leaving only the messageformat structure
     const structure = targetString.match(structureRegEx)?.join('') || '';
 
-    const newlinePos = structure.indexOf(String.fromCharCode(10));
-    if (newlinePos > -1) {
-      reporter.warning('newline', 'String contains unnecessary newline(s).', { column: newlinePos });
-    }
-
     const nbspPos = structure.indexOf(String.fromCharCode(160));
     if (nbspPos > -1) {
-      reporter.error('nbsp', `String contains invalid non-breaking space at position ${nbspPos}.`, { column: nbspPos });
+      msgReporter.error('nbsp', `String contains invalid non-breaking space at position ${nbspPos}.`, { column: nbspPos });
     }
 
     if (targetMap.cases.join(',') !== sourceMap.cases.join(',')) {
-      const caseDiff = Array.from(targetMap.cases.map(c => c.replace(/(?<=\|(plural|selectordinal)\|).*/, ''))).filter(arg => !Array.from(sourceMap.cases).map(c => c.replace(/(?<=\|(plural|selectordinal)\|).*/, '')).includes(arg));
+
+      const cleanTargetCases = targetMap.cases.map(c => c.replace(/(?<=\|(plural|selectordinal)\|).*/, ''));
+      const cleanSourceCases = sourceMap.cases.map(c => c.replace(/(?<=\|(plural|selectordinal)\|).*/, ''));
+      const caseDiff = cleanTargetCases.filter(arg => !cleanSourceCases.includes(arg));
 
       if (caseDiff.length) {
-        reporter.error('case', `Unrecognized cases ${JSON.stringify(caseDiff.map(c => c.replace(/\|(plural|selectordinal)\|/, '')))}`);
+        msgReporter.error('case', `Unrecognized cases ${JSON.stringify(caseDiff.map(c => c.replace(/\|(plural|selectordinal)\|/, '')))}`);
       }
       else if (targetMap.nested && targetMap.cases.length === sourceMap.cases.length) {
         // TODO: better identify case order vs nesting order
-        reporter.error('nest', `Nesting order does not match source. `);
+        msgReporter.error('nest', `Nesting order does not match source. `);
       }
     }
 
@@ -147,16 +172,75 @@ function validateString({ targetString, targetLocale, sourceString, sourceLocale
     const lastItem = targetMap.cases[targetMap.cases.length - 1];
 
     if (hasPlural && !lastItem.match(/^\|(plural|selectordinal)\|/)) {
-      reporter.warning('nest', '"plural" and "selectordinal" should always nest inside "select".');
+      msgReporter.warning('nest', '"plural" and "selectordinal" should always nest inside "select".');
     }
 
     if (targetTokens.length > 1) {
-
       if (targetLocale == sourceLocale && targetTokens.find((token) => typeof token !== 'string' && token.type.match(/plural|select/))) {
-        reporter.warning('split','String split by non-argument (e.g. select; plural).')
+        msgReporter.warning('split','String split by non-argument (e.g. select; plural).')
       }
     }
   }
+}
+
+export function parseLocales(locales, useJSONObj) {
+  return locales.reduce((acc, { contents, file }) => {
+    const locale = file.split('.')[0];
+    acc[locale] = {
+      contents,
+      duplicateKeys: new Set(),
+      parsed: {},
+      file
+    };
+
+    const regex = useJSONObj
+      //[                             ][  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][     value    ][        "        ][     ,    ][ // comment ]
+      ? /("(?<realKey>.*)"(\s*):(\s*){)*\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s*):(?<valSpace>\s*)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g
+      //[  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][     value    ][        "        ][     ,    ][ // comment ]
+      : /\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s*):(?<valSpace>\s*)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?<comma>,?)(?<comment>.*)/g;
+    const matches = Array.from(contents.matchAll(regex));
+
+    let findContext = false;
+    let findValue = false;
+
+    matches.forEach(match => {
+
+      if (useJSONObj) {
+        if (findContext && match.groups.key === 'context') {
+          acc[locale].parsed[findContext].comment = match.groups.val;
+          findContext = false;
+          return;
+        }
+
+        if (findValue && match.groups.key === 'translation') {
+          acc[locale].parsed[findValue].val = match.groups.val;
+          findValue = false;
+          return;
+        }
+
+        if (match.groups.realKey) {
+
+          if (match.groups.key === 'translation') {
+            findContext = match.groups.realKey;
+          }
+          if (match.groups.key === 'context') {
+            match.groups.comment = match.groups.val;
+            findValue = match.groups.realKey;
+          }
+
+          match.groups.key = match.groups.realKey;
+        }
+      }
+
+      if (!acc[locale].parsed[match.groups.key]) {
+        acc[locale].parsed[match.groups.key] = Object.assign(String(match[0]), match.groups);
+      }
+      else {
+        acc[locale].duplicateKeys.add(match.groups.key);
+      }
+    });
+    return acc;
+  }, {});
 }
 
 function _map(tokens, partsMap = { nested: false, arguments: new Set(), cases: [], stringTokens: [] }) {
@@ -196,9 +280,3 @@ function _map(tokens, partsMap = { nested: false, arguments: new Set(), cases: [
 
   return partsMap;
 }
-
-module.exports = {
-  validateString,
-  validateLocales,
-  structureRegEx
-};
