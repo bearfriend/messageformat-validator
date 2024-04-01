@@ -1,4 +1,4 @@
-#!/usr/bin/env NODE_OPTIONS=--no-warnings node
+#!/usr/bin/env -S node --no-warnings --experimental-json-modules
 
 /* eslint-disable no-console */
 
