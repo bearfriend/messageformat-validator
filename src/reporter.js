@@ -1,15 +1,16 @@
 export function Reporter(locale, fileContents = '') {
-  this.config.locale = locale;
-  this.config.fileContents = fileContents;
+  this._config = {};
+  this._config.locale = locale;
+  this._config.fileContents = fileContents;
   this.report = { totals: { errors: 0, warnings: 0 } };
   this.issues = [];
 }
 
 Reporter.prototype.config = function(targetString, sourceString, key) {
-  this.config.key = key || targetString.key;
+  this._config.key = key || targetString.key;
 
-  if (typeof targetString !== "undefined") this.config.target = targetString;
-  if (typeof sourceString !== "undefined") this.config.source = sourceString;
+  if (typeof targetString !== "undefined") this._config.target = targetString;
+  if (typeof sourceString !== "undefined") this._config.source = sourceString;
 };
 
 Reporter.prototype.log = function(level, type, msg, column = 0, line) {
@@ -20,22 +21,22 @@ Reporter.prototype.log = function(level, type, msg, column = 0, line) {
   this.report[levels][type] = this.report[levels][type] || 0;
   this.report[levels][type]++;
 
-  const start = Math.max(this.config.fileContents.indexOf(this.config.target), 0) + column;
-  const newlines = this.config.target.split(this.config.target.val)[0].match(/\n/)?.length || 0;
-  line = line || this.config.fileContents.substring(0, start).split('\n').length + newlines;
+  const start = Math.max(this._config.fileContents.indexOf(this._config.target), 0) + column;
+  const newlines = this._config.target.split(this._config.target.val)[0].match(/\n/)?.length || 0;
+  line = line || this._config.fileContents.substring(0, start).split('\n').length + newlines;
 
   const issue = {
-    locale: this.config.locale,
+    locale: this._config.locale,
     line,
     column,
     type,
     level,
     msg,
-    target: this.config.target.val,
-    source: this.config.source.val
+    target: this._config.target.val,
+    source: this._config.source.val
   };
 
-  if (this.config.key) issue.key = this.config.key;
+  if (this._config.key) issue.key = this._config.key;
 
   this.issues.push(issue);
 
@@ -48,17 +49,17 @@ Reporter.prototype.warning = function(type, msg, details = {}) {
 
   let column, keyPos, linePos, valPos;
 
-  const cleanTarget = this.config.target
+  const cleanTarget = this._config.target
     .replace(/\n/g, '\\n')
     .replace(/"/g, '\\"');
 
   if (['split', 'newline'].includes(type)) {
     column = 0;
   }
-  else if (this.config.key) {
-    keyPos = this.config.fileContents.indexOf(`"${this.config.key}"`);
-    valPos = this.config.fileContents.indexOf(`"${cleanTarget}"`, keyPos);
-    linePos = this.config.fileContents.lastIndexOf(String.fromCharCode(10), keyPos);
+  else if (this._config.key) {
+    keyPos = this._config.fileContents.indexOf(`"${this._config.key}"`);
+    valPos = this._config.fileContents.indexOf(`"${cleanTarget}"`, keyPos);
+    linePos = this._config.fileContents.lastIndexOf(String.fromCharCode(10), keyPos);
     column = (valPos + 1) - linePos + relativeColumn;
 
     if (valPos === -1) {
@@ -80,16 +81,16 @@ Reporter.prototype.error = function(type, msg, details = {}) {
   if (type === 'missing') {
     column = 0;
   }
-  else if (this.config.key) {
+  else if (this._config.key) {
     // todo: this seems json-specific
-    const keyQuote = this.config.target.keyQuote;
-    const valQuote = this.config.target.valQuote;
-    keyPos = this.config.fileContents.indexOf(`${keyQuote}${this.config.key}${keyQuote}`);
-    valPos = this.config.fileContents.indexOf(`${valQuote}${this.config.target.val}${valQuote}`, keyPos);
-    linePos = this.config.fileContents.lastIndexOf(String.fromCharCode(10), keyPos);
+    const keyQuote = this._config.target.keyQuote;
+    const valQuote = this._config.target.valQuote;
+    keyPos = this._config.fileContents.indexOf(`${keyQuote}${this._config.key}${keyQuote}`);
+    valPos = this._config.fileContents.indexOf(`${valQuote}${this._config.target.val}${valQuote}`, keyPos);
+    linePos = this._config.fileContents.lastIndexOf(String.fromCharCode(10), keyPos);
     column = (valPos + 1) - linePos + relativeColumn;
-    line = (this.config.fileContents.substring(0, linePos + column).match(/\n/g)?.length ?? -1) + 1;
-    column -= this.config.target.lastIndexOf('\n', column);
+    line = (this._config.fileContents.substring(0, linePos + column).match(/\n/g)?.length ?? -1) + 1;
+    column -= this._config.target.lastIndexOf('\n', column);
 
     if (valPos === -1) {
       // the target string likely contains a backslash that does not escape anything
