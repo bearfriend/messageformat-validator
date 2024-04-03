@@ -88,7 +88,7 @@ Reporter.prototype.error = function(type, msg, details = {}) {
     valPos = this.config.fileContents.indexOf(`${valQuote}${this.config.target.val}${valQuote}`, keyPos);
     linePos = this.config.fileContents.lastIndexOf(String.fromCharCode(10), keyPos);
     column = (valPos + 1) - linePos + relativeColumn;
-    line = this.config.fileContents.substring(0, linePos + column).match(/\n/g).length + 1;
+    line = (this.config.fileContents.substring(0, linePos + column).match(/\n/g)?.length ?? -1) + 1;
     column -= this.config.target.lastIndexOf('\n', column);
 
     if (valPos === -1) {
