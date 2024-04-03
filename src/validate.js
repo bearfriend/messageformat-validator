@@ -176,7 +176,14 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
     }
 
     if (targetTokens.length > 1) {
-      if (targetLocale == sourceLocale && targetTokens.find((token) => typeof token !== 'string' && token.type.match(/plural|select/))) {
+      console.log('SPLIT?');
+      console.log(targetLocale);
+      console.log(sourceLocale);
+      console.log(targetTokens);
+      const a = targetTokens.find((token) => typeof token !== 'string' && token.type.match(/plural|select|selectordinal/));
+      console.log(a);
+
+      if (targetLocale == sourceLocale && targetTokens.find((token) => typeof token !== 'string' && token.type.match(/plural|select|selectordinal/))) {
         msgReporter.warning('split','String split by non-argument (e.g. select; plural).')
       }
     }
