@@ -8,7 +8,6 @@ export function Reporter(locale, fileContents = '') {
 
 Reporter.prototype.config = function(targetString, sourceString, key) {
   this._config.key = key || targetString.key;
-
   if (typeof targetString !== "undefined") this._config.target = targetString;
   if (typeof sourceString !== "undefined") this._config.source = sourceString;
 };
@@ -32,8 +31,8 @@ Reporter.prototype.log = function(level, type, msg, column = 0, line) {
     type,
     level,
     msg,
-    target: this._config.target.val,
-    source: this._config.source.val
+    target: this._config.target.val || this._config.target,
+    source: this._config.source.val || this._config.source
   };
 
   if (this._config.key) issue.key = this._config.key;
