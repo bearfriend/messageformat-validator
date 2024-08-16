@@ -11,6 +11,8 @@ let reporter;
 
 export function validateLocales({ locales, sourceLocale }) {
 
+  if (!sourceLocale) throw new Error('Must provide the source locale file using either the -s option or a config file.');
+
   const sourceStrings = locales[sourceLocale].parsed;
 
   return Object.keys(locales).map((targetLocale) => {
