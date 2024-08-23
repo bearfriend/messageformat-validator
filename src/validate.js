@@ -164,7 +164,7 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
       }
       else if (targetMap.nested && targetMap.cases.length === sourceMap.cases.length) {
         // TODO: better identify case order vs nesting order
-        msgReporter.error('nest', `Nesting order does not match source. `);
+        msgReporter.warning('nest-order', `Nesting order does not match source.`);
       }
     }
 
@@ -172,7 +172,7 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
     const lastItem = targetMap.cases[targetMap.cases.length - 1];
 
     if (hasPlural && !lastItem.match(/^\|(plural|selectordinal)\|/)) {
-      msgReporter.warning('nest', '"plural" and "selectordinal" should always nest inside "select".');
+      msgReporter.warning('nest-ideal', '"plural" and "selectordinal" should always nest inside "select".');
     }
 
     if (targetTokens.length > 1) {
