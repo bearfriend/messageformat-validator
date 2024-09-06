@@ -1,6 +1,6 @@
 {
   "name": "messageformat-validator",
-  "version": "2.6.7",
+  "version": "3.0.0-alpha.1",
   "description": "Validates that ICU MessageFormat strings are well-formed, and that translated target strings are compatible with their source.",
   "type": "module",
   "repository": {
@@ -27,7 +27,9 @@
   "author": "Daniel Gleckler <daniel.gleckler@gmail.com>",
   "license": "MIT",
   "dependencies": {
+    "@formatjs/icu-messageformat-parser": "^2.7.8",
     "chalk": "^4.1.0",
+    "cldr": "^7.5.0",
     "commander": "^6.1.0",
     "esm": "^3.2.25",
     "find-config": "^1.0.0",
