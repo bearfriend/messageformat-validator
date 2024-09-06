@@ -6,6 +6,7 @@ import { parseLocales, structureRegEx, validateLocales } from '../src/validate.j
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import chalk from 'chalk';
 import findConfig from 'find-config';
+import { formatMessage } from '../src/format.js'
 import glob from 'glob';
 import pkg from '../package.json' with { type: 'json' };
 import { program } from 'commander';
@@ -59,6 +60,23 @@ program
   });
 
 program
+  .command('format')
+  .description('Rewrite messages to a standard format')
+  .option('-n, --newlines', 'When formatting complex arguments, use newlines and indentation for readability')
+  .option('-a, --add', 'Add cases for missing supported pural and selectordinal categories')
+  .option('-r, --remove', 'Remove cases for unsupported pural and selectordinal categories')
+  .option('-d, --dedupe', 'Remove complex argument cases that duplicate the `other` case. Takes precedence over --add.')
+  .action(function() {
+    program.format = true;
+    const opts = this.opts();
+    program.newlines = opts.newlines;
+    program.add = opts.add;
+    program.remove = opts.remove;
+    console.log(opts);
+    program.dedupe = opts.dedupe
+  });
+
+program
   .command('highlight <key>')
   .description('Output a string with all non-translatable ICU MessageFormat structure highlighted')
   .action(key => {
@@ -104,6 +122,11 @@ localesPaths.forEach(async localesPath => {
     console.log(`Renaming "${program.oldKey}" to "${program.newKey}" in:`, targetLocales.join(', '));
   }
 
+  if (program.format) {
+    if (!sourceLocale) noSource();
+    console.log(`Formatting:`, targetLocales.join(', '));
+  }
+
   const resources = await Promise.all(filteredFiles.map(file => readFile(absLocalesPath + file, 'utf8')))
     .then(readFiles => readFiles.map((contents, idx) => ({
       file: filteredFiles[idx],
@@ -147,6 +170,53 @@ localesPaths.forEach(async localesPath => {
 
       }
     });
+
+    return;
+  }
+
+  if (program.format) {
+    let count = 0;
+
+    const sourceLocaleParsed = locales[sourceLocale].parsed;
+    Object.keys(locales).forEach(async locale => {
+      if (!allowedLocales || allowedLocales.includes(locale)) {
+
+        let localeContents = locales[locale].contents;
+
+        Object.values(locales[locale].parsed).forEach(t => {
+
+          const source = sourceLocaleParsed[t.key];
+
+          if (localeContents.includes(t)) {
+            const baseTabs = t.match('^\n?(?<tabs>\t*)').groups.tabs
+            const newVal = formatMessage(t.val, {
+              locale,
+              add: program.add,
+              remove: program.remove,
+              newlines: program.newlines,
+              dedupe: program.dedupe,
+
+              baseTabs: baseTabs.length,
+              key: t.key,
+              source,
+              target: t
+            });
+            const valQuote = program.newlines && newVal.includes('\n') ? '`' : t.valQuote;
+            const valSpace = program.newlines && newVal.includes('\n') ? `\n${baseTabs}` : t.valSpace;
+            const old = `${t.keyQuote}${t.key}${t.keyQuote}${t.keySpace}:${t.valSpace}${t.valQuote}${t.val}${t.valQuote}${t.comma}${t.comment}`;
+            const noo = `${t.keyQuote}${t.key}${t.keyQuote}${t.keySpace}:${valSpace}${valQuote}${newVal}${valQuote}${t.comma}${t.comment}`;
+
+            if (old !== noo) count += 1;
+            localeContents = localeContents.replace(old, noo);
+          }
+        });
+
+        await writeFile(absLocalesPath + locales[locale].file, localeContents);
+      };
+    });
+
+    const cliReport = `\n ${chalk.green('\u2714')} Formatted ${count} messages`;
+    console.log(cliReport);
 
     return;
   }
