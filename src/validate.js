@@ -92,10 +92,10 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
       const badKey = backtickCaptures[0].slice(1, -1);
       const pluralArg = backtickCaptures[1].slice(1, -1)
       const column = targetString.indexOf(badKey, targetString.indexOf(`{${pluralArg}, plural, {`));
-      msgReporter.error('plural-key', e.message, { column });
+      msgReporter.error('categories', e.message, { column });
     }
     else if ((targetString.match(/{/g) || 0).length !== (targetString.match(/}/g) || 0).length) {
-      msgReporter.error('brace', 'Mismatched braces (i.e. {}). ' + e.message, { column: e.location.start.column });
+      msgReporter.error('brace', 'Mismatched braces. ' + e.message, { column: e.location.start.column });
     }
     else {
       msgReporter.error('parse', e.message, { column: e.location.start.column - 1 });
@@ -144,7 +144,7 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
 
     const badArgPos = targetString.indexOf(argDiff[0]);
     if (argDiff.length) {
-      msgReporter.error('argument', `Unrecognized arguments ${JSON.stringify(argDiff)}`, { column: badArgPos });
+      msgReporter.error('argument', `Unrecognized arguments: ${argDiff.join(', ')}. Must be one of: ${Array.from(sourceMap.arguments).join(', ')}`, { column: badArgPos });
     }
 
     // remove all translated content, leaving only the messageformat structure
@@ -179,7 +179,7 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
 
     if (targetTokens.length > 1) {
       if (targetLocale == sourceLocale && targetTokens.find((token) => typeof token !== 'string' && token.type.match(/plural|select/))) {
-        msgReporter.warning('split','String split by non-argument (e.g. select; plural).')
+        msgReporter.warning('split','String split by complex argument')
       }
     }
   }

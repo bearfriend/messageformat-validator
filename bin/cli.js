@@ -21,7 +21,7 @@ program
   .option('-i, --ignoreIssueTypes <items>', 'Ignore these comma-separated issue types')
   .option('-l, --locales <items>', 'Process only these comma-separated locales')
   .option('-p, --path <path>', 'Path to a directory containing locale files')
-  .option('-t, --translator-output', 'Output JSON of all source strings that are missing or untranslated in the target')
+  .option('-t, --translator-output', 'Output JSON of all source messages that are missing or untranslated in the target')
   .option('-s, --source-locale <locale>', 'The locale to use as the source')
   .option('--json-obj', 'Indicate that the files to be parsed are JSON files with keys that have objects for values')
   .command('validate', { isDefault: true, hidden: true })
@@ -31,28 +31,28 @@ program
 
 program
   .command('remove-extraneous')
-  .description('Remove strings that do not exist in the source locale')
+  .description('Remove messages that do not exist in the source locale')
   .action(() => {
     program.removeExtraneous = true;
   });
 
 program
   .command('add-missing')
-  .description('Add strings that do not exist in the target locale')
+  .description('Add messages that do not exist in the target locale')
   .action(() => {
     program.addMissing = true;
   });
 
 program
   .command('sort')
-  .description('Sort strings alphabetically by key, maintaining any blocks')
+  .description('Sort messages alphabetically by key, maintaining any blocks')
   .action(() => {
     program.sort = true;
   });
 
 program
   .command('rename <old-key> <new-key>')
-  .description('Rename a string')
+  .description('Rename a message')
   .action((oldKey, newKey) => {
     program.rename = true;
     program.oldKey = oldKey;
@@ -78,7 +78,7 @@ program
 
 program
   .command('highlight <key>')
-  .description('Output a string with all non-translatable ICU MessageFormat structure highlighted')
+  .description('Output a message with all non-translatable ICU MessageFormat structure highlighted')
   .action(key => {
     program.highlight = key;
   });
@@ -86,7 +86,15 @@ program
 program.parse(process.argv);
 
 const pathCombined = program.path || path;
-if (!pathCombined) throw new Error('Must provide a path to the locale files using either the -p option or a config file.');
+if (!pathCombined) {
+  console.error('Must provide a path to the locale files using either the -p option or a config file.');
+  process.exit(1);
+}
+
+const noSource = () => {
+  console.error('Must provide a source locale using either the -s option or a config file.');
+  process.exit(1);
+};
 
 const localesPaths = glob.sync(pathCombined);
 localesPaths.forEach(async localesPath => {
@@ -111,11 +119,13 @@ localesPaths.forEach(async localesPath => {
   const targetLocales = filteredFiles.map(file => file.split('.')[0]);
 
   if (program.removeExtraneous) {
-    console.log('Removing extraneous strings from:', targetLocales.join(', '));
+    if (!sourceLocale) noSource();
+    console.log('Removing extraneous messages from:', targetLocales.join(', '));
   }
 
   if (program.addMissing) {
-    console.log('Adding missing strings to:', targetLocales.join(', '));
+    if (!sourceLocale) noSource();
+    console.log('Adding missing messages to:', targetLocales.join(', '));
   }
 
   if (program.rename) {
@@ -245,11 +255,13 @@ localesPaths.forEach(async localesPath => {
       }
     }));
 
-    const cliReport = `\n ${chalk.green('\u2714')} Renamed ${count} strings`;
+    const cliReport = `\n ${chalk.green('\u2714')} Renamed ${count} messages`;
     console.log(cliReport);
 
     return;
   }
+
+  if (!sourceLocale) noSource();
 
   const output = validateLocales({ locales, sourceLocale });
   const translatorOutput = {};
@@ -340,12 +352,12 @@ localesPaths.forEach(async localesPath => {
 
       if (program.removeExtraneous) {
         const count = locale.report.errors ? locale.report.errors.extraneous || 0 : 0;
-        const cliReport = `\n ${chalk.green('\u2714')} Removed ${count} extraneous strings`;
+        const cliReport = `\n ${chalk.green('\u2714')} Removed ${count} extraneous messages`;
         console.log(cliReport);
       }
       else if (program.addMissing) {
         const count = locale.report.errors ? locale.report.errors.missing || 0 : 0;
-        const cliReport = `\n ${chalk.green('\u2714')} Added ${count} missing strings`;
+        const cliReport = `\n ${chalk.green('\u2714')} Added ${count} missing messages`;
         console.log(cliReport);
       }
       else if (program.sort) {
