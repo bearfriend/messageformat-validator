@@ -9,13 +9,13 @@ function getPluralCats(locale) {
 export const structureRegEx = /(?<=\s*){(.|\n)*?[{}]|\s*}(.|\n)*?[{}]|[{#]|(\s*)}/g;
 let reporter;
 
-export function validateLocales({ locales, sourceLocale }) {
+export function validateLocales({ locales, sourceLocale }, localesReporter) {
 
   const sourceStrings = locales[sourceLocale].parsed;
 
   return Object.keys(locales).map((targetLocale) => {
 
-    reporter = new Reporter(targetLocale, locales[targetLocale].contents);
+    reporter = localesReporter ?? new Reporter(targetLocale, locales[targetLocale].contents);
     const targetStrings = locales[targetLocale].parsed;
     const checkedKeys = [];
 
@@ -28,18 +28,19 @@ export function validateLocales({ locales, sourceLocale }) {
 
       reporter.config(targetStrings[key], sourceStrings[key]);
 
-      if (!sourceString) reporter.error('extraneous', 'This string does not exist in the source file.');
+      if (!sourceString) {
+        reporter.error('extraneous', 'This string does not exist in the source file.');
+      } else {
+        if (locales[targetLocale].duplicateKeys.has(key)) reporter.error('duplicate-keys', 'Key appears multiple times');
 
-      if (locales[targetLocale].duplicateKeys.has(key)) reporter.error('duplicate-keys', 'Key appears multiple times');
-
-      validateMessage({
-        targetString,
-        targetLocale,
-        sourceString,
-        sourceLocale,
-        overrides
-      });
-
+        validateMessage({
+          targetString,
+          targetLocale,
+          sourceString,
+          sourceLocale,
+          overrides
+        }, reporter);
+      }
     });
 
     const missingKeys = Object.keys(sourceStrings).filter(arg => !checkedKeys.includes(arg));
@@ -116,7 +117,7 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
     const checkCases = target => {
       target?.forEach(part => {
         if (['select', 'selectordinal', 'plural'].includes(part.type)) {
-          const hasOther = part.cases.find(c => c.key === 'other');
+          const hasOther = part.cases.find(c => c.key.trim() === 'other');
           if (!hasOther) {
             msgReporter.error('other', 'Missing "other" case');
           }
@@ -155,12 +156,12 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
 
     if (targetMap.cases.join(',') !== sourceMap.cases.join(',')) {
 
-      const cleanTargetCases = targetMap.cases.map(c => c.replace(/(?<=\|(plural|selectordinal)\|).*/, ''));
-      const cleanSourceCases = sourceMap.cases.map(c => c.replace(/(?<=\|(plural|selectordinal)\|).*/, ''));
+      const cleanTargetCases = targetMap.cases.map(c => c.replace(/.+(?<=\|(plural|selectordinal)\|).*/, ''));
+      const cleanSourceCases = sourceMap.cases.map(c => c.replace(/.+(?<=\|(plural|selectordinal)\|).*/, ''));
       const caseDiff = cleanTargetCases.filter(arg => !cleanSourceCases.includes(arg));
 
       if (caseDiff.length) {
-        msgReporter.error('case', `Unrecognized cases ${JSON.stringify(caseDiff.map(c => c.replace(/\|(plural|selectordinal)\|/, '')))}`);
+        msgReporter.error('case', `Unrecognized cases ${JSON.stringify(caseDiff.map(c => c.replace(/.+\|select\|/, '')))}`);
       }
       else if (targetMap.nested && targetMap.cases.length === sourceMap.cases.length) {
         // TODO: better identify case order vs nesting order
@@ -169,9 +170,10 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
     }
 
     const hasPlural = targetMap.cases.find(c => Boolean(c.match(/^\|(plural|selectordinal)\|/)));
-    const lastItem = targetMap.cases[targetMap.cases.length - 1];
+    const firstPlural = targetMap.cases.findIndex(i => i.match(/^.+\|(plural|selectordinal)\|/)) + 1;
+    const lastSelect = targetMap.cases.findLastIndex(i => i.match(/^.+\|select\|/)) + 1;
 
-    if (hasPlural && !lastItem.match(/^\|(plural|selectordinal)\|/)) {
+    if (targetMap.nested && firstPlural && lastSelect && firstPlural < lastSelect) {
       msgReporter.warning('nest-ideal', '"plural" and "selectordinal" should always nest inside "select".');
     }
 
@@ -264,7 +266,7 @@ function _map(tokens, partsMap = { nested: false, arguments: new Set(), cases: [
             case 'select':
             case 'plural':
             case 'selectordinal':
-            partsMap.cases.push(`|${token.type}|${case_.key}`);
+            partsMap.cases.push(`${token.arg}|${token.type}|${case_.key}`);
             break;
           }
 
