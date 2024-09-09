@@ -11,7 +11,7 @@
   "scripts": {
     "start": "node index.js",
     "test": "mocha 'test/**/*.test.js'",
-    "posttest": "eslint ./"
+    "prepublish": "npm t"
   },
   "bin": {
     "mfv": "bin/cli.js"
