@@ -165,7 +165,7 @@ describe('validate', () => {
 
     // nest
 
-    it('generates an nest-order error with mismatched complex argument order', () => {
+    it('generates a nest-order error with mismatched complex argument order', () => {
       const sourceString = '{a, select, other {{b, select, other {}}}}';
       const targetString = '{b, select, other {{a, select, other {}}}}';
       reporter.config(targetString, sourceString, 'key');
@@ -176,7 +176,7 @@ describe('validate', () => {
       expect(reporter.issues[0].msg).to.equal('Nesting order does not match source.');
     });
 
-    it('generates an nest-ideal error with plural inside select', () => {
+    it('generates a nest-ideal error with plural inside select', () => {
       const sourceString = '{a, plural, one {} other {{b, select, other {}}}}';
       const targetString = '{a, plural, one {} other {{b, select, other {}}}}';
       reporter.config(targetString, sourceString, 'key');
@@ -202,7 +202,7 @@ describe('validate', () => {
 
     // parse
 
-    it('generates an other error with missing other case', () => {
+    it('generates a parse error with an unparseable target message', () => {
       const sourceString = '{a, select, b {}}';
       const targetString = '{a, select b {}}';
       reporter.config(targetString, sourceString, 'key');
@@ -215,7 +215,7 @@ describe('validate', () => {
 
     // source
 
-    it('generates an other error with missing other case', () => {
+    it('generates a source-error error an unparseable source message', () => {
       const sourceString = '{a, select b {}}';
       const targetString = '{a, select, b {}}';
       reporter.config(targetString, sourceString, 'key');
