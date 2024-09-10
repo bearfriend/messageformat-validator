@@ -16,7 +16,7 @@ describe('validate', () => {
 
     // untranslated
 
-    it('generates no issues identical same-language messages', () => {
+    it('generates no issues with identical same-language messages', () => {
       const sourceString = 'An {arg}';
       const targetString = 'An {arg}';
       reporter.config(targetString, sourceString, 'key');
@@ -35,6 +35,49 @@ describe('validate', () => {
       expect(reporter.issues[0].type).to.equal('untranslated');
       expect(reporter.issues[0].level).to.equal('warning');
       expect(reporter.issues[0].msg).to.equal('String has not been translated.');
+    });
+
+    // categories
+
+    it('generates a categories warning when a target message is missing supported plural categories', () => {
+      targetLocale = 'cy-gb';
+      const sourceString = '{a, plural, one {} other {}}';
+      const targetString = '{a, plural, one {} other {}}';
+      reporter.config(targetString, sourceString, 'key');
+      reporter._config.locale = targetLocale;
+      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      expect(reporter.issues.length).to.equal(1);
+      expect(reporter.issues[0].type).to.equal('categories');
+      expect(reporter.issues[0].level).to.equal('warning');
+      expect(reporter.issues[0].msg).to.equal('Missing categories: ["zero","two","few","many"]');
+    });
+
+    // plural-key
+
+    it('generates a plural-key error when a target message uses unsupported plural categories', () => {
+      const sourceString = '{a, plural, one {} other {}}';
+      const targetString = '{a, plural, one {} two {} few {} many {} other {}}';
+      reporter.config(targetString, sourceString, 'key');
+      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      expect(reporter.issues.length).to.equal(1);
+      expect(reporter.issues[0].type).to.equal('plural-key');
+      expect(reporter.issues[0].level).to.equal('error');
+      expect(reporter.issues[0].msg).to.equal('Invalid key `two` for argument `a`. Valid plural keys for this locale are `one`, `other`, and explicit keys like `=0`.');
+    });
+
+    // split
+
+    it('generates a plural-key error when a source message is split by a complex arguemnt', () => {
+      targetLocale = 'en';
+      const sourceString = '{a, plural, one {} other {}} b';
+      const targetString = '{a, plural, one {} other {}} b';
+      reporter.config(targetString, sourceString, 'key');
+      reporter._config.locale = targetLocale;
+      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      expect(reporter.issues.length).to.equal(1);
+      expect(reporter.issues[0].type).to.equal('split');
+      expect(reporter.issues[0].level).to.equal('warning');
+      expect(reporter.issues[0].msg).to.equal('String split by non-argument (e.g. select; plural).');
     });
 
     // arg
