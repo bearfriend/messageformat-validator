@@ -258,7 +258,7 @@ describe('validate', () => {
 
     // missing
 
-    it('generates a missing error with missing message in target locale', () => {
+    it('generates a missing error with missing message in the target locale', () => {
       const sourceString = '{a, select, other {}}';
       const targetString = '{a, select, other {}}';
       const locales = parseLocales([{
@@ -280,6 +280,32 @@ describe('validate', () => {
       expect(reporter.issues[0].type).to.equal('missing');
       expect(reporter.issues[0].level).to.equal('error');
       expect(reporter.issues[0].msg).to.equal('String missing from locale file.');
+    });
+
+    // duplicate-keys
+
+    it('generates a duplicate-keys error with duplicate messages in the target locale', () => {
+      const sourceString = '{a, select, other {}}';
+      const targetString = '{a, select, other {}}';
+      const locales = parseLocales([{
+        file: `${targetLocale}.json`,
+        contents: `{
+          "a": "${sourceString}",
+          "a": "${sourceString}"
+        }`
+      },
+      {
+        file: `${sourceLocale}.json`,
+        contents: `{
+          "a": "${targetString}"
+        }`
+      }]);
+
+      const response = validateLocales({ locales, sourceLocale }, reporter);
+      expect(reporter.issues.length).to.equal(1);
+      expect(reporter.issues[0].type).to.equal('duplicate-keys');
+      expect(reporter.issues[0].level).to.equal('error');
+      expect(reporter.issues[0].msg).to.equal('Key appears multiple times');
     });
 
   });
