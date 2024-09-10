@@ -1,0 +1,7 @@
+{
+  "env": {
+      "es2024": true,
+      "mocha": true
+  },
+  "extends": "eslint:recommended"
+}

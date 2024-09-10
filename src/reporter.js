@@ -12,7 +12,7 @@ Reporter.prototype.config = function(targetString, sourceString, key) {
   if (typeof sourceString !== "undefined") this._config.source = sourceString;
 };
 
-Reporter.prototype.log = function(level, type, msg, column = 0, line) {
+Reporter.prototype.log = function(level, type, msg, column = 0, givenLine) {
   const levels = level + 's';
   this.report.totals[levels]++;
 
@@ -20,9 +20,9 @@ Reporter.prototype.log = function(level, type, msg, column = 0, line) {
   this.report[levels][type] = this.report[levels][type] || 0;
   this.report[levels][type]++;
 
-  const start = Math.max(this._config.fileContents.indexOf(this._config.target), 0) + column;
+  const start = Math.max(this._config.fileContents.indexOf(this._config.target), 0) + column
   const newlines = this._config.target.split(this._config.target.val)[0].match(/\n/)?.length || 0;
-  line = line || this._config.fileContents.substring(0, start).split('\n').length + newlines;
+  const line = givenLine || this._config.fileContents.substring(0, start).split('\n').length + newlines;
 
   const issue = {
     locale: this._config.locale,
