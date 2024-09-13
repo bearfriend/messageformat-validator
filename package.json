@@ -11,7 +11,8 @@
   "scripts": {
     "lint": "npm run lint:eslint",
     "lint:eslint": "eslint . --ext .js --ignore-path .gitignore",
-    "test": "mocha 'test/**/*.test.js'",
+    "test": "npm run lint && npm run test:unit",
+    "test:unit": "mocha 'test/**/*.test.js'",
     "prepublishOnly": "npm t"
   },
   "bin": {
