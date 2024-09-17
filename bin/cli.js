@@ -349,7 +349,7 @@ localesPaths.forEach(async localesPath => {
         }
 
         if (program.removeExtraneous || program.addMissing || program.sort) {
-          await writeFile(localePath, locales[locale.locale].contents);
+          writeFile(localePath, locales[locale.locale].contents);
         }
       }
 
@@ -381,9 +381,12 @@ localesPaths.forEach(async localesPath => {
         console.log(cliReport);
       }
     }
+
+    locale.report = undefined;
+
   }));
 
-  if (output.some(locale => locale.report.totals.errors)) {
+  if (output.some(locale => locale.report?.totals.errors)) {
     console.error('\nErrors were reported in at least one locale. See details above.');
     return 1;
   }
