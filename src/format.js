@@ -23,8 +23,10 @@ function expandASTHashes(ast, parentValue) {
 
 export function formatMessage(msg, options = {}) {
   let ast;
-  //const trimmedMsg = msg.trim();
-  //msg = trimmedMsg.length === 1 ? msg : trimmedMsg;
+  if (options.trim) {
+    const trimmedMsg = msg.trim();
+    msg = trimmedMsg.length === 1 ? msg : trimmedMsg;
+  }
   try {
     ast = parse(msg.replace(/'/g, "'''"), { requiresOtherClause: false });
   } catch(err) {

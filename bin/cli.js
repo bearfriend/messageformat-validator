@@ -20,12 +20,18 @@ program
   .option('-i, --ignoreIssueTypes <items>', 'Ignore these comma-separated issue types')
   .option('-l, --locales <items>', 'Process only these comma-separated locales')
   .option('-p, --path <path>', 'Path to a directory containing locale files')
-  .option('-t, --translator-output', 'Output JSON of all source messages that are missing or untranslated in the target')
   .option('-s, --source-locale <locale>', 'The locale to use as the source')
   .option('--json-obj', 'Indicate that the files to be parsed are JSON files with keys that have objects for values')
   .command('validate', { isDefault: true, hidden: true })
   .action(() => {
     program.validate = true;
+  });
+
+program
+  .command('print-missing')
+  .description('Output JSON of all source messages that are missing or untranslated in the target')
+  .action(() => {
+    program.printMissing = true;
   });
 
 program
@@ -65,6 +71,8 @@ program
   .option('-a, --add', 'Add cases for missing supported pural and selectordinal categories')
   .option('-r, --remove', 'Remove cases for unsupported pural and selectordinal categories')
   .option('-d, --dedupe', 'Remove complex argument cases that duplicate the `other` case. Takes precedence over --add.')
+  .option('-t, --trim', 'Trim whitespace from both ends of messages')
+  .option('-c, --collapse', 'Collapse repeating whitepace')
   .action(function() {
     program.format = true;
     const opts = this.opts();
@@ -316,7 +324,7 @@ localesPaths.forEach(async localesPath => {
                 locales[locale.locale].parsed[issue.key] = locales[sourceLocale].parsed[issue.key];
               }
             }
-            else if (program.translatorOutput) {
+            else if (program.printMissing) {
               if (['missing', 'untranslated'].includes(issue.type)) {
                 translatorOutput[issue.key] = issue.source;
               }
@@ -345,11 +353,10 @@ localesPaths.forEach(async localesPath => {
         }
       }
 
-      if (program.translatorOutput) {
+      if (program.printMissing) {
         console.log(JSON.stringify(translatorOutput, null, 2));
       }
-
-      if (program.removeExtraneous) {
+      else if (program.removeExtraneous) {
         const count = locale.report.errors ? locale.report.errors.extraneous || 0 : 0;
         const cliReport = `\n ${chalk.green('\u2714')} Removed ${count} extraneous messages`;
         console.log(cliReport);
@@ -367,6 +374,7 @@ localesPaths.forEach(async localesPath => {
         const total = locale.report.totals.errors + locale.report.totals.warnings;
         const cliReport = chalk[color](`\n\u2716 ${total} issues (${locale.report.totals.errors} errors, ${locale.report.totals.warnings} warnings)${locale.report.totals.ignored ? chalk.grey(` - ${locale.report.totals.ignored} Ignored`) : ''}`);
         console.log(cliReport);
+        return;
       }
       else {
         const cliReport = `\n ${chalk.green('\u2714')} Passed`;
