@@ -16,7 +16,6 @@ const { path, source: globalSource, locales: globalLocales, jsonObj: globalJsonO
 
 program
   .version(pkg.version)
-  .option('-e, --throw-errors', 'Throw an error if error issues are found')
   .option('--no-issues', 'Don\'t output issues')
   .option('-i, --ignoreIssueTypes <items>', 'Ignore these comma-separated issue types')
   .option('-l, --locales <items>', 'Process only these comma-separated locales')
@@ -376,7 +375,7 @@ localesPaths.forEach(async localesPath => {
     }
   }));
 
-  if (program.throwErrors && output.some(locale => locale.report.totals.errors)) {
+  if (output.some(locale => locale.report.totals.errors)) {
     console.error('\nErrors were reported in at least one locale. See details above.');
     return 1;
   }
