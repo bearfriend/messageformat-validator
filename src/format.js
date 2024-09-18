@@ -118,14 +118,14 @@ function printAST(ast, options, level = 0) {
       singleQuoteStart = delimiters.alternateQuotationStart,
       singleQuoteEnd = delimiters.alternateQuotationEnd;
 
-    if (1) { // todo: fromSource
+    //if (1) { // todo: fromSource
       if (localeLower.endsWith('-gb')) {
         quoteStart = delimiters.alternateQuotationStart;
         quoteEnd = delimiters.alternateQuotationEnd;
         singleQuoteStart = delimiters.quotationStart;
         singleQuoteEnd = delimiters.quotationEnd;
       }
-    }
+    //}
 
 		return ast
       .filter((i, idx) => !trim || i.type !== 0 || (idx !== 0 && idx !== ast.length - 1) || i.value.trim()) // filter out leading and trailing whitespace
