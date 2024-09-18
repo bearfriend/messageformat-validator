@@ -1,6 +1,6 @@
-import { expect } from 'chai';
 import { parseLocales, validateLocales, validateMessage } from '../src/validate.js';
 import { Reporter } from '../src/reporter.js';
+import { expect } from 'chai';
 
 describe('validate', () => {
 
@@ -20,7 +20,7 @@ describe('validate', () => {
       const sourceString = 'An {arg}';
       const targetString = 'An {arg}';
       reporter.config(targetString, sourceString, 'key');
-      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(0);
     });
 
@@ -30,7 +30,7 @@ describe('validate', () => {
       const targetString = 'An {arg}';
       reporter.config(targetString, sourceString, 'key');
       reporter._config.locale = targetLocale;
-      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('untranslated');
       expect(reporter.issues[0].level).to.equal('warning');
@@ -45,7 +45,7 @@ describe('validate', () => {
       const targetString = '{a, plural, one {} other {}}';
       reporter.config(targetString, sourceString, 'key');
       reporter._config.locale = targetLocale;
-      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('categories');
       expect(reporter.issues[0].level).to.equal('warning');
@@ -58,7 +58,7 @@ describe('validate', () => {
       const sourceString = '{a, plural, one {} other {}}';
       const targetString = '{a, plural, one {} two {} few {} many {} other {}}';
       reporter.config(targetString, sourceString, 'key');
-      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('plural-key');
       expect(reporter.issues[0].level).to.equal('error');
@@ -73,7 +73,7 @@ describe('validate', () => {
       const targetString = '{a, plural, one {} other {}} b';
       reporter.config(targetString, sourceString, 'key');
       reporter._config.locale = targetLocale;
-      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('split');
       expect(reporter.issues[0].level).to.equal('warning');
@@ -86,7 +86,7 @@ describe('validate', () => {
       const sourceString = 'An {arg}';
       const targetString = 'An {arG}';
       reporter.config(targetString, sourceString, 'key');
-      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('argument');
       expect(reporter.issues[0].level).to.equal('error');
@@ -99,7 +99,7 @@ describe('validate', () => {
       const sourceString = 'An {arg}';
       const targetString = 'An {arg}}';
       reporter.config(targetString, sourceString, 'key');
-      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(0);
     });
 
@@ -107,7 +107,7 @@ describe('validate', () => {
       const sourceString = '{a, plural, one {An {arg}} other {}}';
       const targetString = '{a, plural, one {An {arg} other {}}';
       reporter.config(targetString, sourceString, 'key');
-      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('brace');
       expect(reporter.issues[0].level).to.equal('error');
@@ -118,7 +118,7 @@ describe('validate', () => {
       const sourceString = '{a, plural, one {An {arg}} other {}}';
       const targetString = '{a, plural, one {An {arg}\'}\'} other {}}';
       reporter.config(targetString, sourceString, 'key');
-      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(0);
     });
 
@@ -128,7 +128,7 @@ describe('validate', () => {
       const sourceString = '{a, select, other {}}';
       const targetString = '{a, select, b {} other {}}';
       reporter.config(targetString, sourceString, 'key');
-      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('case');
       expect(reporter.issues[0].level).to.equal('error');
@@ -139,7 +139,7 @@ describe('validate', () => {
       const sourceString = '{a, select, b {} other {}}';
       const targetString = '{a, select, other {}}';
       reporter.config(targetString, sourceString, 'key');
-      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('case');
       expect(reporter.issues[0].level).to.equal('error');
@@ -152,7 +152,7 @@ describe('validate', () => {
       const sourceString = '{a, select, other {}}';
       const targetString = '{a, select,\u00A0other {}}';
       reporter.config(targetString, sourceString, 'key');
-      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(2);
       expect(reporter.issues[0].type).to.equal('nbsp');
       expect(reporter.issues[0].level).to.equal('error');
@@ -169,7 +169,7 @@ describe('validate', () => {
       const sourceString = '{a, select, other {{b, select, other {}}}}';
       const targetString = '{b, select, other {{a, select, other {}}}}';
       reporter.config(targetString, sourceString, 'key');
-      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('nest-order');
       expect(reporter.issues[0].level).to.equal('warning');
@@ -180,7 +180,7 @@ describe('validate', () => {
       const sourceString = '{a, plural, one {} other {{b, select, other {}}}}';
       const targetString = '{a, plural, one {} other {{b, select, other {}}}}';
       reporter.config(targetString, sourceString, 'key');
-      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('nest-ideal');
       expect(reporter.issues[0].level).to.equal('warning');
@@ -193,7 +193,7 @@ describe('validate', () => {
       const sourceString = '{a, select, b {}}';
       const targetString = '{a, select, b {}}';
       reporter.config(targetString, sourceString, 'key');
-      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('other');
       expect(reporter.issues[0].level).to.equal('error');
@@ -206,7 +206,7 @@ describe('validate', () => {
       const sourceString = '{a, select, b {}}';
       const targetString = '{a, select b {}}';
       reporter.config(targetString, sourceString, 'key');
-      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('parse');
       expect(reporter.issues[0].level).to.equal('error');
@@ -219,7 +219,7 @@ describe('validate', () => {
       const sourceString = '{a, select b {}}';
       const targetString = '{a, select, b {}}';
       reporter.config(targetString, sourceString, 'key');
-      const response = validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('source-error');
       expect(reporter.issues[0].level).to.equal('error');
@@ -249,7 +249,7 @@ describe('validate', () => {
         }, null, '\t')
       }]);
 
-      const response = validateLocales({ locales, sourceLocale }, reporter);
+      validateLocales({ locales, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('extraneous');
       expect(reporter.issues[0].level).to.equal('error');
@@ -275,7 +275,7 @@ describe('validate', () => {
         }, null, '\t')
       }]);
 
-      const response = validateLocales({ locales, sourceLocale }, reporter);
+      validateLocales({ locales, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('missing');
       expect(reporter.issues[0].level).to.equal('error');
@@ -301,7 +301,7 @@ describe('validate', () => {
         }`
       }]);
 
-      const response = validateLocales({ locales, sourceLocale }, reporter);
+      validateLocales({ locales, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('duplicate-keys');
       expect(reporter.issues[0].level).to.equal('error');

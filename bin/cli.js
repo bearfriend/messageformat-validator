@@ -2,16 +2,16 @@
 
 /* eslint-disable no-console */
 
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { parseLocales, structureRegEx, validateLocales } from '../src/validate.js';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
 import chalk from 'chalk';
-import glob from 'glob';
-import { program } from 'commander';
 import findConfig from 'find-config';
+import glob from 'glob';
 import pkg from '../package.json' with { type: 'json' };
-import { validateLocales, parseLocales, structureRegEx } from '../src/validate.js';
+import { program } from 'commander';
 
 const configPath = findConfig('mfv.config.json');
-const { path, source: globalSource, locales: globalLocales, jsonObj: globalJsonObj } = configPath ? (await import(`file://${configPath}`, { with: { type: 'json' }}))?.default : {};
+const { path, source: globalSource, locales: globalLocales, jsonObj: globalJsonObj } = configPath ? (await import(`file://${configPath}`, { with: { type: 'json' } }))?.default ?? {} : {};
 
 program
   .version(pkg.version)
@@ -77,10 +77,12 @@ localesPaths.forEach(async localesPath => {
 
   const subConfigPath = findConfig('mfv.config.json', { cwd: absLocalesPath });
 
-  const { source, locales: configLocales, jsonObj } = subConfigPath ? (await import(`file://${subConfigPath}`, { with: { type: 'json' }}))?.default : {}; /* eslint-disable-line global-require */
+  const { source, locales: configLocales, jsonObj } = subConfigPath ? (await import(`file://${subConfigPath}`, { with: { type: 'json' } }))?.default ?? {} : {}; /* eslint-disable-line global-require */
 
-  const files = await readdir(absLocalesPath).catch(err => console.log(`Failed to read ${absLocalesPath}`));
-  if (!files) return;
+  const files = await readdir(absLocalesPath).catch(err => {
+    console.log(`Failed to read ${absLocalesPath}\n`);
+    throw err;
+  });
 
   const sourceLocale = program.sourceLocale || source || globalSource;
   const allowedLocalesString = program.locales || configLocales || globalLocales;
@@ -103,7 +105,7 @@ localesPaths.forEach(async localesPath => {
   }
 
   const resources = await Promise.all(filteredFiles.map(file => readFile(absLocalesPath + file, 'utf8')))
-    .then(files => files.map((contents, idx) => ({
+    .then(readFiles => readFiles.map((contents, idx) => ({
       file: filteredFiles[idx],
       contents
     })))
@@ -151,7 +153,7 @@ localesPaths.forEach(async localesPath => {
 
   if (program.rename) {
     let count = 0;
-    Object.keys(locales).forEach(async locale => {
+    await Promise.all(Object.keys(locales).map(async locale => {
       if (!allowedLocales || allowedLocales.includes(locale)) {
 
         const localeContents = locales[locale].contents;
@@ -171,7 +173,7 @@ localesPaths.forEach(async localesPath => {
           console.log(`${chalk.red('\u2716')} ${locales[locale].file} - Missing`);
         }
       }
-    });
+    }));
 
     const cliReport = `\n ${chalk.green('\u2714')} Renamed ${count} strings`;
     console.log(cliReport);
@@ -182,7 +184,7 @@ localesPaths.forEach(async localesPath => {
   const output = validateLocales({ locales, sourceLocale });
   const translatorOutput = {};
 
-  output.forEach(async(locale, idx) => {
+  await Promise.all(output.map(async(locale, idx) => {
     const localePath = `${absLocalesPath}${locales[locale.locale].file}`;
 
     if (!allowedLocales || allowedLocales.includes(locale.locale)) {
@@ -207,7 +209,7 @@ localesPaths.forEach(async localesPath => {
         }
         else {
 
-          locale.issues.forEach((issue) => {
+          locale.issues.forEach(issue => {
             if (program.removeExtraneous) {
               if (issue.type === 'extraneous') {
                 locales[locale.locale].contents = locales[locale.locale].contents.replace(locales[locale.locale].parsed[issue.key], '')
@@ -238,7 +240,11 @@ localesPaths.forEach(async localesPath => {
                 translatorOutput[issue.key] = issue.source;
               }
             }
-            else if (!program.ignoreIssueTypes || !program.ignoreIssueTypes.replace(' ','').split(',').includes(issue.type)) {
+            else if (!program.ignoreIssueTypes || !program.ignoreIssueTypes
+              .replace(' ','')
+              .split(',')
+              .includes(issue.type)
+            ) {
               console.log([
                 '  ', chalk.grey(`${issue.line}:${issue.column}`),
                 '  ', chalk[issue.level == 'error' ? 'red' : 'yellow'](issue.level),
@@ -286,10 +292,10 @@ localesPaths.forEach(async localesPath => {
         console.log(cliReport);
       }
     }
-  });
+  }));
 
   if (program.throwErrors && output.some(locale => locale.report.totals.errors)) {
     console.error('\nErrors were reported in at least one locale. See details above.');
-    process.exitCode = 1;
+    return 1;
   }
 });

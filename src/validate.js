@@ -30,7 +30,8 @@ export function validateLocales({ locales, sourceLocale }, localesReporter) {
 
       if (!sourceString) {
         reporter.error('extraneous', 'This string does not exist in the source file.');
-      } else {
+      }
+      else {
         if (locales[targetLocale].duplicateKeys.has(key)) reporter.error('duplicate-keys', 'Key appears multiple times');
 
         validateMessage({
@@ -169,7 +170,6 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
       }
     }
 
-    const hasPlural = targetMap.cases.find(c => Boolean(c.match(/^\|(plural|selectordinal)\|/)));
     const firstPlural = targetMap.cases.findIndex(i => i.match(/^.+\|(plural|selectordinal)\|/)) + 1;
     const lastSelect = targetMap.cases.findLastIndex(i => i.match(/^.+\|select\|/)) + 1;
 

@@ -1,0 +1,29 @@
+name: Release
+on:
+  push:
+    branches:
+      - main
+      - '[0-9]+.x'
+      - '[0-9]+.[0-9]+.x'
+jobs:
+  release:
+    name: Release
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    outputs:
+      git-head: ${{steps.git.outputs.head}}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - name: Semantic Release
+      - run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
