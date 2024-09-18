@@ -1,6 +1,9 @@
 import { hoistSelectors } from '@formatjs/icu-messageformat-parser/manipulator.js';
 import { parse } from '@formatjs/icu-messageformat-parser';
+import { structureRegEx } from './validate.js';
 import cldr from 'cldr';
+
+const paddedQuoteLocales = ['fr', 'fr-ca', 'fr-fr', 'fr-on', 'vi-vn'];
 
 function expandASTHashes(ast, parentValue) {
   if (Array.isArray(ast)) {
@@ -50,7 +53,7 @@ export function formatMessage(msg, options = {}) {
   }
 
 	return printAST(ast, {
-    useNewlines: options.newlines ?? msg.includes('\n'),
+    useNewlines: options.newlines ?? msg.match(structureRegEx)?.join('').includes('\n'),
     add: options.add ?? false,
     remove: options.remove ?? false,
     dedupe: options.dedupe ?? false,
@@ -85,6 +88,8 @@ function printAST(ast, options, level = 0) {
     args = []
   } = options;
 
+  const localeLower = locale.toLowerCase();
+
 	if (Array.isArray(ast)) {
     const swapOneClone = new Set(swapOne);
     ast.forEach(a => a.type === 1 && swapOneClone.delete(a.value))
@@ -96,22 +101,37 @@ function printAST(ast, options, level = 0) {
         return cldr.extractDelimiters(locale.split('-')[0]);
       }
     })();
+
+    for (const k in delimiters) {
+      if (paddedQuoteLocales.includes(localeLower)) {
+        if (k.endsWith('Start')) {
+          delimiters[k] = delimiters[k].padEnd(2,'\u202f');
+        } else if (k.endsWith('End')) {
+          delimiters[k] = delimiters[k].padStart(2,'\u202f');
+        }
+      }
+    }
+
     let
       quoteStart = delimiters.quotationStart,
       quoteEnd = delimiters.quotationEnd,
       singleQuoteStart = delimiters.alternateQuotationStart,
       singleQuoteEnd = delimiters.alternateQuotationEnd;
 
-    if (locale.toLowerCase().endsWith('-gb')) {
-      quoteStart = delimiters.alternateQuotationStart;
-      quoteEnd = delimiters.alternateQuotationEnd;
-      singleQuoteStart = delimiters.quotationStart;
-      singleQuoteEnd = delimiters.quotationEnd;
+    if (1) { // todo: fromSource
+      if (localeLower.endsWith('-gb')) {
+        quoteStart = delimiters.alternateQuotationStart;
+        quoteEnd = delimiters.alternateQuotationEnd;
+        singleQuoteStart = delimiters.quotationStart;
+        singleQuoteEnd = delimiters.quotationEnd;
+      }
     }
 
-		return ast.map((ast, idx, arr) => {
-      let trim;
-      if (options.trim) {
+		return ast
+      .filter((i, idx) => !trim || i.type !== 0 || (idx !== 0 && idx !== ast.length - 1) || i.value.trim()) // filter out leading and trailing whitespace
+      .map((ast, idx, arr) => {
+      let trim = options.trim;
+      if (trim && ast.type === 0) {
         if (arr.length === 1) {
           trim = 'trim';
         } else if (!idx) {
@@ -184,7 +204,7 @@ function printAST(ast, options, level = 0) {
       if (ast.options['=1'] && JSON.stringify(ast.options['=1']) === JSON.stringify(ast.options['one'])) {
         delete ast.options['=1'];
       }
-    } else if (ast.options['=1'] && /(?<!(=|offset:\s?))1/.test(JSON.stringify(ast.options['=1'].value))) { // TODO: recursively check actual options
+    } else if (ast.options['=1'] && /(?<!(=|offset:|"type":\s?))1/.test(JSON.stringify(ast.options['=1'].value))) { // TODO: recursively check actual options
       // `=1` exists with literal "1" text
       ast.options.one = ast.options['=1'];
       delete ast.options['=1'];
@@ -200,7 +220,15 @@ function printAST(ast, options, level = 0) {
       });
     }
 
-    remove && unsupportedCats.forEach(cat => delete ast.options[cat]);
+    remove && unsupportedCats.forEach(cat => {
+      const currentKeys = Object.keys(ast.options);
+      if (currentKeys.includes(cat)) {
+        if (currentKeys.length === 1) {
+          ast.options.other = Object.assign({}, ast.options[cat]);
+        }
+        delete ast.options[cat];
+      }
+    });
 
 		const typeText = ast.pluralType === 'ordinal' ? 'selectordinal' : 'plural';
 		const offsetText = + ast.offset !== 0 ? ` offset:${ast.offset}` : '';
