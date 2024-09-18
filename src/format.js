@@ -23,10 +23,6 @@ function expandASTHashes(ast, parentValue) {
 
 export function formatMessage(msg, options = {}) {
   let ast;
-  if (options.trim) {
-    const trimmedMsg = msg.trim();
-    msg = trimmedMsg.length === 1 ? msg : trimmedMsg;
-  }
   try {
     ast = parse(msg.replace(/'/g, "'''"), { requiresOtherClause: false });
   } catch(err) {
@@ -63,6 +59,9 @@ export function formatMessage(msg, options = {}) {
     add: options.add ?? false,
     remove: options.remove ?? false,
     dedupe: options.dedupe ?? false,
+    trim: options.trim ?? false,
+    collapse: options.collapse ?? false,
+
     locale: options.locale,
     args: options.source ? [...new Set(options.source.match(/(?<=[\{<])[^,\{\}<>]+(?=[\}>,])/g))] : []
   }, options.baseTabs);
@@ -87,6 +86,8 @@ function printAST(ast, options, level = 0) {
     add = false,
     remove = false,
     dedupe = false,
+    trim = false,
+    collapse = false,
     args = []
   } = options;
 
@@ -114,7 +115,19 @@ function printAST(ast, options, level = 0) {
       singleQuoteEnd = delimiters.quotationEnd;
     }
 
-		return ast.map(ast => printAST(ast, { ...options, swapOne: swapOneClone }, level)).join('')
+		return ast.map((ast, idx, arr) => {
+      let trim;
+      if (options.trim) {
+        if (arr.length === 1) {
+          trim = 'trim';
+        } else if (!idx) {
+          trim = 'trimStart';
+        } else if (idx === arr.length - 1) {
+          trim = 'trimEnd';
+        }
+      }
+      return printAST(ast, { ...options, swapOne: swapOneClone, trim }, level);
+    }).join('')
 			.replace(/''/g, '|_single_|').replace(/'/g, '|_escape_|').replace(/\|_single_\|/g, "'")
 			.replace(/(?<=\s)\\?'|^\\?'/g, singleQuoteStart) // opening '
       .replace(/(?<=\S)'(?=\S)/g, '’') // apostrophe
@@ -131,7 +144,7 @@ function printAST(ast, options, level = 0) {
 
 	if (type === 0) { // straight text
     const value = swapOne.size ? ast.value.replace(/1/g, `{${[...swapOne].join('|')}}`) : ast.value;
-    text += value;
+    text += value[trim]?.() ?? value;
 	}
 	else if (type === 1) { // simple arg
 		text += `{${normalizeArgName(ast.value, args)}}`;
