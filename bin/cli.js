@@ -79,7 +79,8 @@ program
     program.newlines = opts.newlines;
     program.add = opts.add;
     program.remove = opts.remove;
-    console.log(opts);
+    program.trim = opts.trim;
+    program.collapse = opts.collapse;
     program.dedupe = opts.dedupe
   });
 
@@ -212,6 +213,8 @@ localesPaths.forEach(async localesPath => {
               remove: program.remove,
               newlines: program.newlines,
               dedupe: program.dedupe,
+              trim: program.trim,
+              collapse: program.collapse,
 
               baseTabs: baseTabs.length,
               key: t.key,
