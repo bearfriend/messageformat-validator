@@ -31,8 +31,8 @@ Reporter.prototype.log = function(level, type, msg, column = 0, givenLine) {
     type,
     level,
     msg,
-    target: this._config.target.val || this._config.target,
-    source: this._config.source.val || this._config.source
+    target: this._config.target?.val ?? this._config.target,
+    source: this._config.source?.val ?? this._config.source
   };
 
   if (this._config.key) issue.key = this._config.key;

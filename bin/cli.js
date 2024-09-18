@@ -232,7 +232,7 @@ localesPaths.forEach(async localesPath => {
         });
 
         await writeFile(absLocalesPath + locales[locale].file, localeContents);
-      };
+      }
     });
 
     const cliReport = `\n ${chalk.green('\u2714')} Formatted ${count} messages`;

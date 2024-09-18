@@ -54,20 +54,20 @@ describe('validate', () => {
 
     // plural-key
 
-    it('generates a plural-key error when a target message uses unsupported plural categories', () => {
+    it('generates a categories error when a target message uses unsupported plural categories', () => {
       const sourceString = '{a, plural, one {} other {}}';
       const targetString = '{a, plural, one {} two {} few {} many {} other {}}';
       reporter.config(targetString, sourceString, 'key');
       validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
       expect(reporter.issues.length).to.equal(1);
-      expect(reporter.issues[0].type).to.equal('plural-key');
+      expect(reporter.issues[0].type).to.equal('categories');
       expect(reporter.issues[0].level).to.equal('error');
       expect(reporter.issues[0].msg).to.equal('Invalid key `two` for argument `a`. Valid plural keys for this locale are `one`, `other`, and explicit keys like `=0`.');
     });
 
     // split
 
-    it('generates a plural-key error when a source message is split by a complex arguemnt', () => {
+    it('generates a split error when a source message is split by a complex argument', () => {
       targetLocale = 'en';
       const sourceString = '{a, plural, one {} other {}} b';
       const targetString = '{a, plural, one {} other {}} b';
@@ -77,7 +77,7 @@ describe('validate', () => {
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('split');
       expect(reporter.issues[0].level).to.equal('warning');
-      expect(reporter.issues[0].msg).to.equal('String split by non-argument (e.g. select; plural).');
+      expect(reporter.issues[0].msg).to.equal('String split by complex argument');
     });
 
     // arg
@@ -90,7 +90,7 @@ describe('validate', () => {
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('argument');
       expect(reporter.issues[0].level).to.equal('error');
-      expect(reporter.issues[0].msg).to.equal('Unrecognized arguments ["arG"]');
+      expect(reporter.issues[0].msg).to.equal('Unrecognized arguments: arG. Must be one of: arg');
     });
 
     // brace
@@ -111,7 +111,7 @@ describe('validate', () => {
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('brace');
       expect(reporter.issues[0].level).to.equal('error');
-      expect(reporter.issues[0].msg).to.equal('Mismatched braces (i.e. {}). Expected identifier but "}" found.');
+      expect(reporter.issues[0].msg).to.equal('Mismatched braces. Expected identifier but "}" found.');
     });
 
     it('does not generate a brace error with escaped mismatched braces', () => {
