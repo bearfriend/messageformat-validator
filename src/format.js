@@ -1,11 +1,6 @@
 import { hoistSelectors } from '@formatjs/icu-messageformat-parser/manipulator.js';
 import { parse } from '@formatjs/icu-messageformat-parser';
-import * as pluralCats from 'make-plural/pluralCategories';
 import cldr from 'cldr';
-
-function getPluralCats(locale) {
-  return pluralCats[locale.split('-')[0]] || pluralCats.en;
-}
 
 function expandASTHashes(ast, parentValue) {
   if (Array.isArray(ast)) {
@@ -27,7 +22,7 @@ export function formatMessage(msg, options = {}) {
     ast = parse(msg.replace(/'/g, "'''"), { requiresOtherClause: false });
   } catch(err) {
     try {
-      alteredMsg = msg.replace('\'{', '’{');
+      const alteredMsg = msg.replace('\'{', '’{');
       ast = parse(msg.replace(/'/g, "'''"), { requiresOtherClause: false });
       msg = alteredMsg;
     } catch(err2) {
@@ -63,7 +58,7 @@ export function formatMessage(msg, options = {}) {
     collapse: options.collapse ?? false,
 
     locale: options.locale,
-    args: options.source ? [...new Set(options.source.match(/(?<=[\{<])[^,\{\}<>]+(?=[\}>,])/g))] : []
+    args: options.source ? [...new Set(options.source.match(/(?<=[{<])[^,{}<>]+(?=[}>,])/g))] : []
   }, options.baseTabs);
 }
 
@@ -87,7 +82,6 @@ function printAST(ast, options, level = 0) {
     remove = false,
     dedupe = false,
     trim = false,
-    collapse = false,
     args = []
   } = options;
 

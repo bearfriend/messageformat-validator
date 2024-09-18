@@ -3,11 +3,6 @@ import { formatMessage } from '../src/format.js';
 
 describe('formatMessage', () => {
 
-  let locale;
-  beforeEach(() => {
-    locale = 'en';
-  });
-
   [
     { locale: 'ar', expected: `This isn’t ”correct“` },
     { locale: 'cy', expected: `This isn’t “correct”` },

@@ -69,7 +69,16 @@ describe('validate', () => {
 			expect(reporter.issues[0].msg).to.equal('Missing categories: ["zero","two","few","many"]');
 		});
 
-		// plural-key
+    it('generates a categories error when a target message uses unsupported plural categories', () => {
+      const sourceString = '{a, plural, one {} other {}}';
+      const targetString = '{a, plural, one {} two {} few {} many {} other {}}';
+      reporter.config(targetString, sourceString, 'key');
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      expect(reporter.issues.length).to.equal(1);
+      expect(reporter.issues[0].type).to.equal('categories');
+      expect(reporter.issues[0].level).to.equal('error');
+      expect(reporter.issues[0].msg).to.equal('Invalid key `two` for argument `a`. Valid plural keys for this locale are `one`, `other`, and explicit keys like `=0`.');
+    });
 
 		it('generates a plural-key error when a target message uses unsupported plural categories', () => {
 			const sourceString = '{a, plural, one {} other {}}';
@@ -82,7 +91,18 @@ describe('validate', () => {
 			expect(reporter.issues[0].msg).to.equal('Invalid key `two` for argument `a`. Valid plural keys for this locale are `one`, `other`, and explicit keys like `=0`.');
 		});
 
-		// split
+    it('generates a split error when a source message is split by a complex argument', () => {
+      targetLocale = 'en';
+      const sourceString = '{a, plural, one {} other {}} b';
+      const targetString = '{a, plural, one {} other {}} b';
+      reporter.config(targetString, sourceString, 'key');
+      reporter._config.locale = targetLocale;
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      expect(reporter.issues.length).to.equal(1);
+      expect(reporter.issues[0].type).to.equal('split');
+      expect(reporter.issues[0].level).to.equal('warning');
+      expect(reporter.issues[0].msg).to.equal('String split by complex argument');
+    });
 
 		it('generates a plural-key error when a source message is split by a complex arguemnt', () => {
 			targetLocale = 'en';
@@ -97,7 +117,16 @@ describe('validate', () => {
 			expect(reporter.issues[0].msg).to.equal('String split by non-argument (e.g. select; plural).');
 		});
 
-		// arg
+    it('generates an argument error with unrecognized argument', () => {
+      const sourceString = 'An {arg}';
+      const targetString = 'An {arG}';
+      reporter.config(targetString, sourceString, 'key');
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      expect(reporter.issues.length).to.equal(1);
+      expect(reporter.issues[0].type).to.equal('argument');
+      expect(reporter.issues[0].level).to.equal('error');
+      expect(reporter.issues[0].msg).to.equal('Unrecognized arguments: arG. Must be one of: arg');
+    });
 
 		it('generates an argument error with unrecognized argument', () => {
 			const sourceString = 'An {arg}';
@@ -112,13 +141,16 @@ describe('validate', () => {
 
 		// brace
 
-		it.skip('does not generate a brace error with parseable mismatched braces', () => {
-			const sourceString = 'An {arg}';
-			const targetString = 'An {arg}}';
-			reporter.config(targetString, sourceString, 'key');
-			validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
-			expect(reporter.issues.length).to.equal(0);
-		});
+    it('generates a brace error with unparseable mismatched braces', () => {
+      const sourceString = '{a, plural, one {An {arg}} other {}}';
+      const targetString = '{a, plural, one {An {arg} other {}}';
+      reporter.config(targetString, sourceString, 'key');
+      validateMessage({ targetString, targetLocale, sourceString, sourceLocale }, reporter);
+      expect(reporter.issues.length).to.equal(1);
+      expect(reporter.issues[0].type).to.equal('brace');
+      expect(reporter.issues[0].level).to.equal('error');
+      expect(reporter.issues[0].msg).to.equal('Mismatched braces. Expected identifier but "}" found.');
+    });
 
 		it('generates a brace error with unparseable mismatched braces', () => {
 			const sourceString = '{a, plural, one {An {arg}} other {}}';
