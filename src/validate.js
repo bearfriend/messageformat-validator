@@ -11,45 +11,46 @@ let reporter;
 
 export function validateLocales({ locales, sourceLocale }, localesReporter) {
 
-  const sourceStrings = locales[sourceLocale].parsed;
+  const sourceMessages = locales[sourceLocale].parsed;
 
   return Object.keys(locales).map((targetLocale) => {
 
     reporter = localesReporter ?? new Reporter(targetLocale, locales[targetLocale].contents);
-    const targetStrings = locales[targetLocale].parsed;
+    const targetMessages = locales[targetLocale].parsed;
     const checkedKeys = [];
 
-    Object.keys(targetStrings).forEach(key => {
+    Object.keys(targetMessages).forEach(key => {
 
       checkedKeys.push(key);
-      const targetString = targetStrings?.[key].val;
-      const sourceString = sourceStrings?.[key]?.val || '';
-      const overrides = Array.from(targetStrings?.[key].comment.matchAll(/mfv-(?<override>[a-z]+)/g)).map(m => m.groups.override)
+      const targetMessage = targetMessages?.[key].val;
+      const sourceMessage = sourceMessages?.[key]?.val || '';
+      const overrides = Array.from(targetMessages?.[key].comment.matchAll(/mfv-(?<override>[a-z]+)/g)).map(m => m.groups.override)
 
-      reporter.config(targetStrings[key], sourceStrings[key]);
 
-      if (!sourceString) {
-        reporter.error('extraneous', 'This string does not exist in the source file.');
+      reporter.config(targetMessages[key], sourceMessages[key]);
+
+      if (!sourceMessage) {
+        reporter.error('extraneous', 'Message does not exist in the source file.');
       }
       else {
         if (locales[targetLocale].duplicateKeys.has(key)) reporter.error('duplicate-keys', 'Key appears multiple times');
 
         validateMessage({
-          targetString,
+          targetMessage,
           targetLocale,
-          sourceString,
+          sourceMessage,
           sourceLocale,
           overrides
         }, reporter);
       }
     });
 
-    const missingKeys = Object.keys(sourceStrings).filter(arg => !checkedKeys.includes(arg));
+    const missingKeys = Object.keys(sourceMessages).filter(arg => !checkedKeys.includes(arg));
 
     if (missingKeys.length) {
       missingKeys.forEach((key) => {
-        reporter.config(sourceStrings[key], sourceStrings[key]);
-        reporter.error('missing', `String missing from locale file.`)
+        reporter.config(sourceMessages[key], sourceMessages[key]);
+        reporter.error('missing', `Message missing from locale file.`)
       })
     }
 
@@ -63,27 +64,27 @@ export function validateLocales({ locales, sourceLocale }, localesReporter) {
   });
 }
 
-export function validateMessage({ targetString, targetLocale, sourceString, sourceLocale, overrides }, msgReporter = reporter) {
+export function validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale, overrides }, msgReporter = reporter) {
 
   const re = /[\u2000-\u206F\u2E00-\u2E7F\n\r\\'!"#$%&()*+,\-.\/∕:;<=>?@\[\]^_`{|}~]/g; // eslint-disable-line
 
   if (sourceLocale
     && targetLocale.split('-')[0] !== sourceLocale.split('-')[0]
-    && targetString.replace(re,'') === sourceString.replace(re,'')) {
+    && targetMessage.replace(re,'') === sourceMessage.replace(re,'')) {
 
       if (!overrides?.includes('translated')
-        && sourceString
+        && sourceMessage
           .replace(structureRegEx, '')
           .replace(re,'')
           .replace(/\s/g, '')) {
 
-        msgReporter.warning('untranslated', `String has not been translated.`);
+        msgReporter.warning('untranslated', `Message has not been translated.`);
       }
   }
 
   let parsedTarget;
   try {
-    parsedTarget = Object.freeze(parse(targetString, getPluralCats(targetLocale)));
+    parsedTarget = Object.freeze(parse(targetMessage, getPluralCats(targetLocale)));
   }
   catch(e) {
 
@@ -91,10 +92,10 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
       const backtickCaptures = e.message.match(/`([^`]*)`/g);
       const badKey = backtickCaptures[0].slice(1, -1);
       const pluralArg = backtickCaptures[1].slice(1, -1)
-      const column = targetString.indexOf(badKey, targetString.indexOf(`{${pluralArg}, plural, {`));
+      const column = targetMessage.indexOf(badKey, targetMessage.indexOf(`{${pluralArg}, plural, {`));
       msgReporter.error('categories', e.message, { column });
     }
-    else if ((targetString.match(/{/g) || 0).length !== (targetString.match(/}/g) || 0).length) {
+    else if ((targetMessage.match(/{/g) || 0).length !== (targetMessage.match(/}/g) || 0).length) {
       msgReporter.error('brace', 'Mismatched braces. ' + e.message, { column: e.location.start.column });
     }
     else {
@@ -108,10 +109,10 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
     let sourceTokens;
 
     try {
-      sourceTokens = parse(sourceString, getPluralCats(sourceLocale));
+      sourceTokens = parse(sourceMessage, getPluralCats(sourceLocale));
     }
     catch(e) {
-      msgReporter.error('source-error', 'Failed to parse source string.');
+      msgReporter.error('source-error', 'Failed to parse source message.');
       return;
     }
 
@@ -142,17 +143,17 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
 
     const argDiff = Array.from(targetMap.arguments).filter(arg => !Array.from(sourceMap.arguments).includes(arg));
 
-    const badArgPos = targetString.indexOf(argDiff[0]);
+    const badArgPos = targetMessage.indexOf(argDiff[0]);
     if (argDiff.length) {
       msgReporter.error('argument', `Unrecognized arguments: ${argDiff.join(', ')}. Must be one of: ${Array.from(sourceMap.arguments).join(', ')}`, { column: badArgPos });
     }
 
     // remove all translated content, leaving only the messageformat structure
-    const structure = targetString.match(structureRegEx)?.join('') || '';
+    const structure = targetMessage.match(structureRegEx)?.join('') || '';
 
     const nbspPos = structure.indexOf(String.fromCharCode(160));
     if (nbspPos > -1) {
-      msgReporter.error('nbsp', `String contains invalid non-breaking space at position ${nbspPos}.`, { column: nbspPos });
+      msgReporter.error('nbsp', `Message contains invalid non-breaking space at position ${nbspPos}.`, { column: nbspPos });
     }
 
     if (targetMap.cases.join(',') !== sourceMap.cases.join(',')) {
@@ -179,7 +180,7 @@ export function validateMessage({ targetString, targetLocale, sourceString, sour
 
     if (targetTokens.length > 1) {
       if (targetLocale == sourceLocale && targetTokens.find((token) => typeof token !== 'string' && token.type.match(/plural|select/))) {
-        msgReporter.warning('split','String split by complex argument')
+        msgReporter.warning('split','Message split by complex argument')
       }
     }
   }
@@ -245,7 +246,7 @@ export function parseLocales(locales, useJSONObj) {
   }, {});
 }
 
-function _map(tokens, partsMap = { nested: false, arguments: new Set(), cases: [], stringTokens: [] }) {
+function _map(tokens, partsMap = { nested: false, arguments: new Set(), cases: [], messageTokens: [] }) {
 
   tokens.forEach(token => {
 
@@ -275,7 +276,7 @@ function _map(tokens, partsMap = { nested: false, arguments: new Set(), cases: [
       }
     }
     else {
-      partsMap.stringTokens.push(token);
+      partsMap.messageTokens.push(token);
     }
 
   });

@@ -315,14 +315,14 @@ localesPaths.forEach(async localesPath => {
                 const keyIdx = keys.indexOf(issue.key);
                 const nextKey = keys[keyIdx + 1];
                 const previousKey = keys[keyIdx - 1];
-                const nextString = locales[locale.locale].parsed[nextKey];
-                const siblingString = nextString || locales[locale.locale].parsed[previousKey] || locales[locale.locale].parsed[targetKeys[targetKeys.length - 1]];
+                const nextMessage = locales[locale.locale].parsed[nextKey];
+                const siblingMessage = nextMessage || locales[locale.locale].parsed[previousKey] || locales[locale.locale].parsed[targetKeys[targetKeys.length - 1]];
                 const contents = locales[locale.locale].contents;
-                const insertAt = contents.indexOf(siblingString) + Number(!nextString ? String(siblingString).length : 0);
-                const comma = !nextString && !siblingString.comma ? `,${siblingString.comment}` : '';
-                const commaOffset = comma ? siblingString.comment.length : 0;
-                const sourceString = `${comma}${locales[sourceLocale].parsed[issue.key]}`;
-                locales[locale.locale].contents = [contents.slice(0, insertAt - commaOffset), sourceString, contents.slice(insertAt)].join('');
+                const insertAt = contents.indexOf(siblingMessage) + Number(!nextMessage ? String(siblingMessage).length : 0);
+                const comma = !nextMessage && !siblingMessage.comma ? `,${siblingMessage.comment}` : '';
+                const commaOffset = comma ? siblingMessage.comment.length : 0;
+                const sourceMessage = `${comma}${locales[sourceLocale].parsed[issue.key]}`;
+                locales[locale.locale].contents = [contents.slice(0, insertAt - commaOffset), sourceMessage, contents.slice(insertAt)].join('');
                 console.log('Added:', issue.key);
                 locales[locale.locale].parsed[issue.key] = locales[sourceLocale].parsed[issue.key];
               }

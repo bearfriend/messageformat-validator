@@ -6,10 +6,10 @@ export function Reporter(locale, fileContents = '') {
   this.issues = [];
 }
 
-Reporter.prototype.config = function(targetString, sourceString, key) {
-  this._config.key = key || targetString.key;
-  if (typeof targetString !== "undefined") this._config.target = targetString;
-  if (typeof sourceString !== "undefined") this._config.source = sourceString;
+Reporter.prototype.config = function(targetMessage, sourceMessage, key) {
+  this._config.key = key || targetMessage.key;
+  if (typeof targetMessage !== "undefined") this._config.target = targetMessage;
+  if (typeof sourceMessage !== "undefined") this._config.source = sourceMessage;
 };
 
 Reporter.prototype.log = function(level, type, msg, column = 0, givenLine) {
@@ -62,7 +62,7 @@ Reporter.prototype.warning = function(type, msg, details = {}) {
     column = (valPos + 1) - linePos + relativeColumn;
 
     if (valPos === -1) {
-      // the target string likely contains a backslash that does not escape anything
+      // the target message likely contains a backslash that does not escape anything
       column = 0;
     }
   }
@@ -92,7 +92,7 @@ Reporter.prototype.error = function(type, msg, details = {}) {
     column -= this._config.target.lastIndexOf('\n', column);
 
     if (valPos === -1) {
-      // the target string likely contains a backslash that does not escape anything
+      // the target message likely contains a backslash that does not escape anything
       column = 0;
     }
   }
