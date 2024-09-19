@@ -1,4 +1,3 @@
-import * as pluralCats from 'make-plural/pluralCategories'
 import { Reporter } from './reporter.js';
 import { parse } from '@formatjs/icu-messageformat-parser';
 
@@ -7,8 +6,8 @@ const SELECTORDINAL = 6;
 const PLURAL = 6;
 const ARGUMENT = 1;
 
-function getPluralCats(locale) {
-  return pluralCats[locale.split('-')[0]] || pluralCats.en;
+function getPluralCats(locale, pluralType) {
+  return new Intl.PluralRules(locale, { type: pluralType }).resolvedOptions().pluralCategories;
 }
 
 export const structureRegEx = /(?<=\s*){(.|\n)*?[{}]|\s*}(.|\n)*?[{}]|[{#]|(\s*)}/g;
@@ -136,7 +135,7 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
           }
 
           if (part.type === PLURAL) {
-            const supportedCats = getPluralCats(targetLocale)[part.pluralType];
+            const supportedCats = getPluralCats(targetLocale, part.pluralType);
             const cats = Object.keys(part.options);
             const missingCats = supportedCats.filter(c => c !== 'other' && !cats.includes(c));
             if (missingCats.length) msgReporter.warning('categories', `Missing categories: ${JSON.stringify(missingCats)}`);
