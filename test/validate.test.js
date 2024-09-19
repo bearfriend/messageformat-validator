@@ -49,7 +49,7 @@ describe('validate', () => {
       expect(reporter.issues.length).to.equal(1);
       expect(reporter.issues[0].type).to.equal('categories');
       expect(reporter.issues[0].level).to.equal('warning');
-      expect(reporter.issues[0].msg).to.equal('Missing categories: ["zero","two","few","many"]');
+      expect(reporter.issues[0].msg).to.equal('Missing categories "zero", "two", "few", and "many"');
     });
 
     it('generates "categories" errors when a target message uses unsupported plural categories', () => {

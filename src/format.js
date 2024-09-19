@@ -1,9 +1,7 @@
 import { hoistSelectors } from '@formatjs/icu-messageformat-parser/manipulator.js';
 import { parse } from '@formatjs/icu-messageformat-parser';
-import { structureRegEx } from './validate.js';
+import { getPluralCats, paddedQuoteLocales, sortedCats, structureRegEx } from './utils.js';
 import cldr from 'cldr';
-
-const paddedQuoteLocales = ['fr', 'fr-ca', 'fr-fr', 'fr-on', 'vi-vn'];
 
 function expandASTHashes(ast, parentValue) {
   if (Array.isArray(ast)) {
@@ -188,9 +186,8 @@ function printAST(ast, options, level = 0) {
 		text += `{${normalizeArgName(ast.value, args)}, select,${optionsText}}`;
 	}
 	else if (type === 6) { // plural, selectordinal
-		const pluralCats = ['zero', 'one', 'two', 'few', 'many', 'other'];
-		const supportedCats = new Intl.PluralRules(locale, { type: ast.pluralType }).resolvedOptions().pluralCategories;
-		const unsupportedCats = [ ...Object.keys(ast.options).filter(o => !/^=\d+$/.test(o)) , ...pluralCats].filter(cat => !supportedCats.includes(cat));
+		const supportedCats = getPluralCats(locale, ast.pluralType);
+		const unsupportedCats = [ ...Object.keys(ast.options).filter(o => !/^=\d+$/.test(o)) , ...sortedCats].filter(cat => !supportedCats.includes(cat));
     if (add) {
 			supportedCats.forEach(cat => {
         if (!/^(fr|pt)/.test(locale) && cat === 'one' && ast.options['=1']) return; // don't create orphaned `one`
@@ -236,7 +233,7 @@ function printAST(ast, options, level = 0) {
 			if (a[0].startsWith('=') || b[0].startsWith('=')) {
 				return a[0].localeCompare(b[0]);
 			}
-			return pluralCats.indexOf(a[0]) > pluralCats.indexOf(b[0]) ? 1 : -1;
+			return sortedCats.indexOf(a[0]) > sortedCats.indexOf(b[0]) ? 1 : -1;
 		}).map(([opt, { value }]) => {
 			return `${newline}${useNewlines ? '\t' : ''}${opt} {${printAST(value, { ...options, swapOne }, level + 1)}}`;
 		}).join('') + (useNewlines ? newline : '');
