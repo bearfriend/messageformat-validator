@@ -18,7 +18,7 @@ const { path, source: globalSource, locales: globalLocales, jsonObj: globalJsonO
 program
 	.version(pkg.version)
 	.option('--no-issues', 'Don\'t output issues')
-	.option('-i, --ignoreIssueTypes <items>', 'Ignore these comma-separated issue types')
+	.option('-i, --ignore <items>', 'Ignore these comma-separated issue types')
 	.option('-l, --locales <items>', 'Process only these comma-separated locales')
 	.option('-p, --path <path>', 'Path to a directory containing locale files')
 	.option('-s, --source-locale <locale>', 'The locale to use as the source')
@@ -284,7 +284,7 @@ localesPaths.forEach(async localesPath => {
 			console.log((idx > 0 ? '\n' : '') + chalk.underline(localePath));
 			if (program.issues) {
 
-				locale.report.totals.ignored = 0;
+				locale.report.totals.ignored = { warnings: 0, errors: 0 };
 
 				if (program.sort) {
 					const sorted = Object.values(locales[locale.locale].parsed)
@@ -333,7 +333,7 @@ localesPaths.forEach(async localesPath => {
 								translatorOutput[issue.key] = issue.source;
 							}
 						}
-						else if (!program.ignoreIssueTypes || !program.ignoreIssueTypes
+						else if (!program.ignore || !program.ignore
 							.replace(' ','')
 							.split(',')
 							.includes(issue.type)
@@ -347,7 +347,7 @@ localesPaths.forEach(async localesPath => {
 							].join(''));
 						}
 						else {
-							locale.report.totals.ignored += 1;
+							locale.report.totals.ignored[`${issue.level}s`] += 1;
 						}
 					});
 				}
@@ -376,7 +376,8 @@ localesPaths.forEach(async localesPath => {
 			else if (locale.report.totals.errors || locale.report.totals.warnings) {
 				const color = locale.report.totals.errors ? 'red' : 'yellow';
 				const total = locale.report.totals.errors + locale.report.totals.warnings;
-				const cliReport = chalk[color](`\n\u2716 ${total} issues (${locale.report.totals.errors} errors, ${locale.report.totals.warnings} warnings)${locale.report.totals.ignored ? chalk.grey(` - ${locale.report.totals.ignored} Ignored`) : ''}`);
+				const ignored = locale.report.totals.ignored.errors + locale.report.totals.ignored.warnings;
+				const cliReport = chalk[color](`\n\u2716 ${total} issues (${locale.report.totals.errors} errors, ${locale.report.totals.warnings} warnings)${ignored ? chalk.grey(` - ${ignored} Ignored`) : ''}`);
 				console.log(cliReport);
 				return;
 			}
@@ -390,7 +391,7 @@ localesPaths.forEach(async localesPath => {
 
 	}));
 
-	if (output.some(locale => locale.report?.totals.errors)) {
+	if (output.some(locale => locale.report && locale.report.totals.errors - locale.report.totals.ignored.errors )) {
 		console.error('\nErrors were reported in at least one locale. See details above.');
 		return 1;
 	}
