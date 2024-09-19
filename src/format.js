@@ -1,7 +1,7 @@
 import { hoistSelectors } from '@formatjs/icu-messageformat-parser/manipulator.js';
 import { parse } from '@formatjs/icu-messageformat-parser';
 import { getPluralCats, paddedQuoteLocales, sortedCats, structureRegEx } from './utils.js';
-import cldr from 'cldr';
+import cldrData from './cldr-data.js';
 
 function expandASTHashes(ast, parentValue) {
 	if (Array.isArray(ast)) {
@@ -88,18 +88,12 @@ function printAST(ast, options, level = 0) {
 	} = options;
 
 	const localeLower = locale.toLowerCase();
+	const localeData = cldrData[locale] ?? cldrData[locale.split('-')[0]];
+	const delimiters = localeData.delimiters;
 
 	if (Array.isArray(ast)) {
 		const swapOneClone = new Set(swapOne);
 		ast.forEach(a => a.type === 1 && swapOneClone.delete(a.value))
-
-		const delimiters = (() => {
-			try {
-				return cldr.extractDelimiters(locale);
-			} catch(err) {
-				return cldr.extractDelimiters(locale.split('-')[0]);
-			}
-		})();
 
 		for (const k in delimiters) {
 			if (paddedQuoteLocales.includes(localeLower)) {
