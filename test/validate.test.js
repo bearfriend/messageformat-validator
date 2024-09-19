@@ -34,12 +34,12 @@ describe('validate', () => {
 			expect(reporter.issues.length).to.equal(1);
 			expect(reporter.issues[0].type).to.equal('untranslated');
 			expect(reporter.issues[0].level).to.equal('warning');
-			expect(reporter.issues[0].msg).to.equal('Message has not been translated.');
+			expect(reporter.issues[0].msg).to.equal('Message has not been translated');
 		});
 
 		// categories
 
-		it('generates a "categories" warning when a target message is missing supported plural categories', () => {
+		it('generates a "categories-missing" warning when a target message is missing supported plural categories', () => {
 			targetLocale = 'cy-gb';
 			const sourceMessage = '{a, plural, one {} other {}}';
 			const targetMessage = '{a, plural, one {} other {}}';
@@ -47,7 +47,7 @@ describe('validate', () => {
 			reporter._config.locale = targetLocale;
 			validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale }, reporter);
 			expect(reporter.issues.length).to.equal(1);
-			expect(reporter.issues[0].type).to.equal('categories');
+			expect(reporter.issues[0].type).to.equal('categories-missing');
 			expect(reporter.issues[0].level).to.equal('warning');
 			expect(reporter.issues[0].msg).to.equal('Missing categories "zero", "two", "few", and "many"');
 		});
@@ -62,15 +62,15 @@ describe('validate', () => {
 
 			expect(reporter.issues[0].type).to.equal('categories');
 			expect(reporter.issues[0].level).to.equal('error');
-			expect(reporter.issues[0].msg).to.equal('Unsupported category "two". Must be one of: "one", "other", or explicit keys like "=0"');
+			expect(reporter.issues[0].msg).to.equal('Unsupported category "two". Locale supports "one", "other", and explicit keys like "=0".');
 
 			expect(reporter.issues[1].type).to.equal('categories');
 			expect(reporter.issues[1].level).to.equal('error');
-			expect(reporter.issues[1].msg).to.equal('Unsupported category "few". Must be one of: "one", "other", or explicit keys like "=0"');
+			expect(reporter.issues[1].msg).to.equal('Unsupported category "few". Locale supports "one", "other", and explicit keys like "=0".');
 
 			expect(reporter.issues[2].type).to.equal('categories');
 			expect(reporter.issues[2].level).to.equal('error');
-			expect(reporter.issues[2].msg).to.equal('Unsupported category "many". Must be one of: "one", "other", or explicit keys like "=0"');
+			expect(reporter.issues[2].msg).to.equal('Unsupported category "many". Locale supports "one", "other", and explicit keys like "=0".');
 		});
 
 		it('generates "categories" errors when a target message uses nested unsupported plural categories', () => {
@@ -82,7 +82,7 @@ describe('validate', () => {
 			expect(reporter.issues.length).to.equal(1);
 			expect(reporter.issues[0].type).to.equal('categories');
 			expect(reporter.issues[0].level).to.equal('error');
-			expect(reporter.issues[0].msg).to.equal('Unsupported category "two". Must be one of: "one", "other", or explicit keys like "=0"');
+			expect(reporter.issues[0].msg).to.equal('Unsupported category "two". Locale supports "one", "other", and explicit keys like "=0".');
 		});
 
 		// split
@@ -110,7 +110,7 @@ describe('validate', () => {
 			expect(reporter.issues.length).to.equal(1);
 			expect(reporter.issues[0].type).to.equal('argument');
 			expect(reporter.issues[0].level).to.equal('error');
-			expect(reporter.issues[0].msg).to.equal('Unrecognized arguments: arG. Must be one of: arg');
+			expect(reporter.issues[0].msg).to.equal('Unrecognized argument "arG". Source message uses "arg".');
 		});
 
 		// brace
@@ -144,9 +144,9 @@ describe('validate', () => {
 
 		// option
 
-		it('generates "option" errors with unrecognized cases in select arguments', () => {
+		it('generates "option" errors with unrecognized options in select arguments', () => {
 			const sourceMessage = '{a, select, b {} other {}}';
-			const targetMessage = '{a, select, B {} C {} other {}}';
+			const targetMessage = '{a, select, b {} c {} d {} other {}}';
 			reporter.config(targetMessage, sourceMessage, 'key');
 			validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale }, reporter);
 
@@ -154,22 +154,22 @@ describe('validate', () => {
 
 			expect(reporter.issues[0].type).to.equal('option');
 			expect(reporter.issues[0].level).to.equal('error');
-			expect(reporter.issues[0].msg).to.equal('Unrecognized option "B". Must be one of "b", "other".');
+			expect(reporter.issues[0].msg).to.equal('Unrecognized option "c". Argument uses "b" and "other".');
 
 			expect(reporter.issues[1].type).to.equal('option');
 			expect(reporter.issues[1].level).to.equal('error');
-			expect(reporter.issues[1].msg).to.equal('Unrecognized option "C". Must be one of "b", "other".');
+			expect(reporter.issues[1].msg).to.equal('Unrecognized option "d". Argument uses "b" and "other".');
 		});
 
-		it.skip('generates a "option" error with missing cases in select arguments', () => {
+		it('generates an "option" error with missing options in select arguments', () => {
 			const sourceMessage = '{a, select, b {} other {}}';
 			const targetMessage = '{a, select, other {}}';
 			reporter.config(targetMessage, sourceMessage, 'key');
 			validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale }, reporter);
 			expect(reporter.issues.length).to.equal(1);
-			expect(reporter.issues[0].type).to.equal('option');
+			expect(reporter.issues[0].type).to.equal('option-missing');
 			expect(reporter.issues[0].level).to.equal('error');
-			expect(reporter.issues[0].msg).to.equal('Missing cases ["b"]');
+			expect(reporter.issues[0].msg).to.equal('Missing option "b"');
 		});
 
 		// nbsp
@@ -183,7 +183,7 @@ describe('validate', () => {
 			expect(reporter.issues.length).to.equal(1);
 			expect(reporter.issues[0].type).to.equal('nbsp');
 			expect(reporter.issues[0].level).to.equal('error');
-			expect(reporter.issues[0].msg).to.equal('Message contains invalid non-breaking space at position 11.');
+			expect(reporter.issues[0].msg).to.equal('Message contains invalid non-breaking space at position 11');
 		});
 
 		// nest
@@ -196,7 +196,7 @@ describe('validate', () => {
 			expect(reporter.issues.length).to.equal(1);
 			expect(reporter.issues[0].type).to.equal('nest-order');
 			expect(reporter.issues[0].level).to.equal('warning');
-			expect(reporter.issues[0].msg).to.equal('Nesting order does not match source.');
+			expect(reporter.issues[0].msg).to.equal('Nesting order does not match source');
 		});
 
 		it('generates a "nest-ideal" error with plural inside select', () => {
@@ -207,7 +207,7 @@ describe('validate', () => {
 			expect(reporter.issues.length).to.equal(1);
 			expect(reporter.issues[0].type).to.equal('nest-ideal');
 			expect(reporter.issues[0].level).to.equal('warning');
-			expect(reporter.issues[0].msg).to.equal('"plural" and "selectordinal" should always nest inside "select".');
+			expect(reporter.issues[0].msg).to.equal('"plural" and "selectordinal" should always nest inside "select"');
 		});
 
 		// other
@@ -259,7 +259,7 @@ describe('validate', () => {
 			expect(reporter.issues.length).to.equal(1);
 			expect(reporter.issues[0].type).to.equal('source-error');
 			expect(reporter.issues[0].level).to.equal('error');
-			expect(reporter.issues[0].msg).to.equal('Failed to parse source message.');
+			expect(reporter.issues[0].msg).to.equal('Failed to parse source message');
 		});
 
 	});
@@ -289,7 +289,7 @@ describe('validate', () => {
 			expect(reporter.issues.length).to.equal(1);
 			expect(reporter.issues[0].type).to.equal('extraneous');
 			expect(reporter.issues[0].level).to.equal('error');
-			expect(reporter.issues[0].msg).to.equal('Message does not exist in the source file.');
+			expect(reporter.issues[0].msg).to.equal('Message does not exist in the source file');
 		});
 
 		// missing
@@ -315,7 +315,7 @@ describe('validate', () => {
 			expect(reporter.issues.length).to.equal(1);
 			expect(reporter.issues[0].type).to.equal('missing');
 			expect(reporter.issues[0].level).to.equal('error');
-			expect(reporter.issues[0].msg).to.equal('Message missing from locale file.');
+			expect(reporter.issues[0].msg).to.equal('Message missing from locale file');
 		});
 
 		// duplicate-keys
