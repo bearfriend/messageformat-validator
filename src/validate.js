@@ -1,16 +1,11 @@
+import { formatList, getPluralCats, sortedCats, structureRegEx } from './utils.js';
 import { Reporter } from './reporter.js';
 import { parse } from '@formatjs/icu-messageformat-parser';
 
 const SELECT = 5;
-const SELECTORDINAL = 6;
 const PLURAL = 6;
 const ARGUMENT = 1;
 
-function getPluralCats(locale, pluralType) {
-  return new Intl.PluralRules(locale, { type: pluralType }).resolvedOptions().pluralCategories;
-}
-
-export const structureRegEx = /(?<=\s*){(.|\n)*?[{}]|\s*}(.|\n)*?[{}]|[{#]|(\s*)}/g;
 let reporter;
 
 export function validateLocales({ locales, sourceLocale }, localesReporter) {
@@ -138,7 +133,7 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
             const supportedCats = getPluralCats(targetLocale, part.pluralType);
             const cats = Object.keys(part.options);
             const missingCats = supportedCats.filter(c => c !== 'other' && !cats.includes(c));
-            if (missingCats.length) msgReporter.warning('categories', `Missing categories: ${JSON.stringify(missingCats)}`);
+            if (missingCats.length) msgReporter.warning('categories', `Missing categories ${formatList(sortedCats.filter(c => missingCats.includes(c)).map(i => `"${i}"`))}`);
             const unsupportedCats = cats.filter(c => !supportedCats.includes(c));
 
             unsupportedCats.forEach(cat => {
