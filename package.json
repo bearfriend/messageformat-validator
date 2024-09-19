@@ -13,7 +13,8 @@
     "lint:eslint": "eslint . --ext .js --ignore-path .gitignore",
     "test": "npm run lint && npm run test:unit",
     "test:unit": "mocha 'test/**/*.test.js'",
-    "prepublishOnly": "npm t"
+    "prepare": "npm run build && npm t",
+    "build": "node build-cldr-data.js"
   },
   "bin": {
     "mfv": "bin/cli.js"
@@ -29,7 +30,6 @@
   "dependencies": {
     "@formatjs/icu-messageformat-parser": "^2.7.8",
     "chalk": "^4.1.0",
-    "cldr": "^7.5.0",
     "commander": "^6.1.0",
     "esm": "^3.2.25",
     "find-config": "^1.0.0",
@@ -41,6 +41,7 @@
     "@eslint/compat": "^1.1.1",
     "@eslint/eslintrc": "^3.1.0",
     "@eslint/js": "^9.10.0",
+    "cldr": "^7.5.0",
     "chai": "^5.1.1",
     "eslint": "^8.57.0",
     "globals": "^15.9.0",
