@@ -45,7 +45,7 @@ export function formatMessage(msg, options = {}) {
     expandASTHashes(ast);
   }
   try {
-	ast = hoistSelectors(ast);
+    ast = hoistSelectors(ast);
   } catch(e) {
     console.log(e);
   }

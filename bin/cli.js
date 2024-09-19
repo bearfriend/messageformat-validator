@@ -2,7 +2,7 @@
 
 /* eslint-disable no-console */
 
-import { parseLocales, structureRegEx, validateLocales } from '../src/validate.js';
+import { parseLocales, validateLocales } from '../src/validate.js';
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import chalk from 'chalk';
 import findConfig from 'find-config';
@@ -10,6 +10,7 @@ import { formatMessage } from '../src/format.js'
 import glob from 'glob';
 import pkg from '../package.json' with { type: 'json' };
 import { program } from 'commander';
+import { structureRegEx } from '../src/utils.js';
 
 const configPath = findConfig('mfv.config.json');
 const { path, source: globalSource, locales: globalLocales, jsonObj: globalJsonObj } = configPath ? (await import(`file://${configPath}`, { with: { type: 'json' } }))?.default ?? {} : {};

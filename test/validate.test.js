@@ -54,7 +54,7 @@ describe('validate', () => {
 
     it('generates "categories" errors when a target message uses unsupported plural categories', () => {
       const sourceMessage = '{a, plural, one {} other {}}';
-      const targetMessage = '{a, plural, one {} two {} few {} many {} other {}}';
+      const targetMessage = '{a, plural, =1 {} one {} two {} few {} many {} other {}}';
       reporter.config(targetMessage, sourceMessage, 'key');
       validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale }, reporter);
 
@@ -71,6 +71,18 @@ describe('validate', () => {
       expect(reporter.issues[2].type).to.equal('categories');
       expect(reporter.issues[2].level).to.equal('error');
       expect(reporter.issues[2].msg).to.equal('Unsupported category "many". Must be one of: "one", "other", or explicit keys like "=0"');
+    });
+
+    it('generates "categories" errors when a target message uses nested unsupported plural categories', () => {
+      const sourceMessage = '{a, plural, one {} other {}}';
+      const targetMessage = '{a, plural, one {{a, plural, one {} two {} other {}}} other {}}';
+      reporter.config(targetMessage, sourceMessage, 'key');
+      validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale }, reporter);
+
+      expect(reporter.issues.length).to.equal(1);
+      expect(reporter.issues[0].type).to.equal('categories');
+      expect(reporter.issues[0].level).to.equal('error');
+      expect(reporter.issues[0].msg).to.equal('Unsupported category "two". Must be one of: "one", "other", or explicit keys like "=0"');
     });
 
     // split
@@ -203,6 +215,18 @@ describe('validate', () => {
     it('generates an "other" error with missing other case', () => {
       const sourceMessage = '{a, select, b {}}';
       const targetMessage = '{a, select, b {}}';
+      reporter.config(targetMessage, sourceMessage, 'key');
+      validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale }, reporter);
+
+      expect(reporter.issues.length).to.equal(1);
+      expect(reporter.issues[0].type).to.equal('other');
+      expect(reporter.issues[0].level).to.equal('error');
+      expect(reporter.issues[0].msg).to.equal('Missing "other" option');
+    });
+
+    it('generates an "other" error with missing nested other case', () => {
+      const sourceMessage = '{a, select, other {{c, select, b {}}}}';
+      const targetMessage = '{a, select, other {{c, select, b {}}}}';
       reporter.config(targetMessage, sourceMessage, 'key');
       validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale }, reporter);
 
