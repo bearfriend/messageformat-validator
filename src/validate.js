@@ -134,7 +134,7 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
             const cats = Object.keys(part.options);
             const missingCats = supportedCats.filter(c => c !== 'other' && !cats.includes(c));
             if (missingCats.length) msgReporter.warning('categories', `Missing categories ${formatList(sortedCats.filter(c => missingCats.includes(c)).map(i => `"${i}"`))}`);
-            const unsupportedCats = cats.filter(c => !supportedCats.includes(c));
+            const unsupportedCats = cats.filter(c => !/^=\d+$/.test(c) && !supportedCats.includes(c));
 
             unsupportedCats.forEach(cat => {
               const column = part.options[cat].location.start.offset;
