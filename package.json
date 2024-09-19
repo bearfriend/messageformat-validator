@@ -33,8 +33,7 @@
     "commander": "^6.1.0",
     "esm": "^3.2.25",
     "find-config": "^1.0.0",
-    "glob": "^7.1.6",
-    "make-plural": "^7.4.0"
+    "glob": "^7.1.6"
   },
   "devDependencies": {
     "@babel/eslint-parser": "^7.25.1",
