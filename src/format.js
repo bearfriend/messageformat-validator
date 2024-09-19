@@ -19,6 +19,7 @@ function expandASTHashes(ast, parentValue) {
 
 export function formatMessage(msg, options = {}) {
 	let ast;
+
 	try {
 		ast = parse(msg.replace(/'/g, "'''"), { requiresOtherClause: false });
 	} catch(err) {

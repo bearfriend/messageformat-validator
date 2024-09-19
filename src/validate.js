@@ -29,7 +29,7 @@ export function validateLocales({ locales, sourceLocale }, localesReporter) {
 			reporter.config(targetMessages[key], sourceMessages[key]);
 
 			if (!sourceMessage) {
-				reporter.error('extraneous', 'Message does not exist in the source file.');
+				reporter.error('extraneous', 'Message does not exist in the source file');
 			}
 			else {
 				if (locales[targetLocale].duplicateKeys.has(key)) reporter.error('duplicate-keys', 'Key appears multiple times');
@@ -49,7 +49,7 @@ export function validateLocales({ locales, sourceLocale }, localesReporter) {
 		if (missingKeys.length) {
 			missingKeys.forEach((key) => {
 				reporter.config(sourceMessages[key], sourceMessages[key]);
-				reporter.error('missing', `Message missing from locale file.`)
+				reporter.error('missing', 'Message missing from locale file')
 			})
 		}
 
@@ -68,7 +68,7 @@ function checkNbsp(message, reporter) {
 	const nbspPos = structure.indexOf(String.fromCharCode(160));
 
 	if (nbspPos > -1) {
-		reporter.error('nbsp', `Message contains invalid non-breaking space at position ${nbspPos}.`, { column: nbspPos });
+		reporter.error('nbsp', `Message contains invalid non-breaking space at position ${nbspPos}`, { column: nbspPos });
 		return true;
 	}
 }
@@ -87,7 +87,7 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 				.replace(re,'')
 				.replace(/\s/g, '')) {
 
-			msgReporter.warning('untranslated', `Message has not been translated.`);
+			msgReporter.warning('untranslated', 'Message has not been translated');
 		}
 	}
 
@@ -118,7 +118,7 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 			sourceTokens = parse(sourceMessage, { requiresOtherClause: false });
 		}
 		catch(e) {
-			msgReporter.error('source-error', 'Failed to parse source message.');
+			msgReporter.error('source-error', 'Failed to parse source message');
 			return;
 		}
 
@@ -133,12 +133,12 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 						const supportedCats = getPluralCats(targetLocale, part.pluralType);
 						const cats = Object.keys(part.options);
 						const missingCats = supportedCats.filter(c => c !== 'other' && !cats.includes(c));
-						if (missingCats.length) msgReporter.warning('categories', `Missing categories ${formatList(sortedCats.filter(c => missingCats.includes(c)).map(i => `"${i}"`))}`);
+						if (missingCats.length) msgReporter.warning('categories-missing', `Missing ${missingCats.length === 1 ? 'category' : 'categories'} ${formatList(sortedCats.filter(c => missingCats.includes(c)).map(i => `"${i}"`))}`);
 						const unsupportedCats = cats.filter(c => !/^=\d+$/.test(c) && !supportedCats.includes(c));
 
 						unsupportedCats.forEach(cat => {
 							const column = part.options[cat].location.start.offset;
-							msgReporter.error('categories', `Unsupported category "${cat}". Must be one of: "${supportedCats.join('", "')}", or explicit keys like "=0"`, { column });
+							msgReporter.error('categories', `Unsupported category "${cat}". Locale supports "${supportedCats.join('", "')}", and explicit keys like "=0".`, { column });
 						});
 					}
 
@@ -158,7 +158,7 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 
 		const badArgPos = targetMessage.indexOf(argDiff[0]);
 		if (argDiff.length) {
-			msgReporter.error('argument', `Unrecognized arguments: ${argDiff.join(', ')}. Must be one of: ${Array.from(sourceMap.arguments).join(', ')}`, { column: badArgPos });
+			msgReporter.error('argument', `Unrecognized ${argDiff.length === 1 ? 'argument' : 'arguments'} ${formatList(argDiff.map(i => `"${i}"`))}. Source message uses ${formatList(Array.from(sourceMap.arguments).map(i => `"${i}"`))}.`, { column: badArgPos });
 		}
 
 		checkNbsp(targetMessage, msgReporter);
@@ -167,15 +167,20 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 
 			const cleanTargetCases = targetMap.cases.map(c => c.replace(/.+(?<=\|(6(ordinal|cardinal))\|).*/, ''));
 			const cleanSourceCases = sourceMap.cases.map(c => c.replace(/.+(?<=\|(6(ordinal|cardinal))\|).*/, ''));
-			const optionDiff = cleanTargetCases.filter(arg => !cleanSourceCases.includes(arg));
 
-			optionDiff.forEach(o => {
-				msgReporter.error('option', `Unrecognized option "${o.replace(/.+\|5undefined\|/, '')}". Must be one of "${cleanSourceCases.map(o => o.replace(/.+\|5undefined\|/, '')).join('", "')}".`);
+			const extraOptions = cleanTargetCases.filter(arg => !cleanSourceCases.includes(arg));
+			extraOptions.forEach(o => {
+				msgReporter.error('option', `Unrecognized option "${o.replace(/.+\|5undefined\|/, '')}". Argument uses ${formatList(cleanSourceCases.map(o => `"${o.replace(/.+\|5undefined\|/, '')}"`))}.`);
+			});
+
+			const missingOptions = cleanSourceCases.filter(arg => !cleanTargetCases.includes(arg));
+			missingOptions.forEach(o => {
+				msgReporter.error('option-missing', `Missing option "${o.replace(/.+\|5undefined\|/, '')}"`);
 			});
 
 			if (targetMap.nested && targetMap.cases.length === sourceMap.cases.length) {
 				// TODO: better identify case order vs nesting order
-				msgReporter.warning('nest-order', `Nesting order does not match source.`);
+				msgReporter.warning('nest-order', 'Nesting order does not match source');
 			}
 		}
 
@@ -183,7 +188,7 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 		const lastSelect = targetMap.cases.findLastIndex(i => i.match(/^.+\|5undefined\|/)) + 1;
 
 		if (targetMap.nested && firstPlural && lastSelect && firstPlural < lastSelect) {
-			msgReporter.warning('nest-ideal', '"plural" and "selectordinal" should always nest inside "select".');
+			msgReporter.warning('nest-ideal', '"plural" and "selectordinal" should always nest inside "select"');
 		}
 
 		if (targetTokens.length > 1) {
