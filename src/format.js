@@ -4,145 +4,145 @@ import { getPluralCats, paddedQuoteLocales, sortedCats, structureRegEx } from '.
 import cldr from 'cldr';
 
 function expandASTHashes(ast, parentValue) {
-  if (Array.isArray(ast)) {
-    ast.map(ast => expandASTHashes(ast, parentValue));
-  }
+	if (Array.isArray(ast)) {
+		ast.map(ast => expandASTHashes(ast, parentValue));
+	}
 
-  if (ast.type === 7) { // #
-    ast.type = 1;
-    ast.value = parentValue;
-  }
-  else if (ast.type === 6) { // plural, selectordinal
-    expandASTHashes(Object.values(ast.options).map(o => o.value), ast.value);
-  }
+	if (ast.type === 7) { // #
+		ast.type = 1;
+		ast.value = parentValue;
+	}
+	else if (ast.type === 6) { // plural, selectordinal
+		expandASTHashes(Object.values(ast.options).map(o => o.value), ast.value);
+	}
 }
 
 export function formatMessage(msg, options = {}) {
-  let ast;
-  try {
-    ast = parse(msg.replace(/'/g, "'''"), { requiresOtherClause: false });
-  } catch(err) {
-    try {
-      const alteredMsg = msg.replace('\'{', '’{');
-      ast = parse(msg.replace(/'/g, "'''"), { requiresOtherClause: false });
-      msg = alteredMsg;
-    } catch(err2) {
-      if (err.location) {
-        console.log(`\nERROR: ${err.message}`);
-        console.log(`\tLocale: ${options.locale}`);
-        console.log(`\tKey: ${options.key}`);
-        console.log(`\tOriginal message: ${err.originalMessage}`);
-        console.log('\tAt or near:', msg.slice(err.location.start.offset, Math.max(err.location.end.offset, err.location.start.offset + 4)));
-      } else {
-        console.log(err);
-        console.log(`\tLocale: ${options.locale}`);
-        console.log(`\tKey: ${options.key}`);
-      }
-      return msg;
-    }
-  }
-  if (options.expandHashes) {
-    expandASTHashes(ast);
-  }
-  try {
-    ast = hoistSelectors(ast);
-  } catch(e) {
-    console.log(e);
-  }
+	let ast;
+	try {
+		ast = parse(msg.replace(/'/g, "'''"), { requiresOtherClause: false });
+	} catch(err) {
+		try {
+			const alteredMsg = msg.replace('\'{', '’{');
+			ast = parse(msg.replace(/'/g, "'''"), { requiresOtherClause: false });
+			msg = alteredMsg;
+		} catch(err2) {
+			if (err.location) {
+				console.log(`\nERROR: ${err.message}`);
+				console.log(`\tLocale: ${options.locale}`);
+				console.log(`\tKey: ${options.key}`);
+				console.log(`\tOriginal message: ${err.originalMessage}`);
+				console.log('\tAt or near:', msg.slice(err.location.start.offset, Math.max(err.location.end.offset, err.location.start.offset + 4)));
+			} else {
+				console.log(err);
+				console.log(`\tLocale: ${options.locale}`);
+				console.log(`\tKey: ${options.key}`);
+			}
+			return msg;
+		}
+	}
+	if (options.expandHashes) {
+		expandASTHashes(ast);
+	}
+	try {
+		ast = hoistSelectors(ast);
+	} catch(e) {
+		console.log(e);
+	}
 
 	return printAST(ast, {
-    useNewlines: options.newlines ?? msg.match(structureRegEx)?.join('').includes('\n'),
-    add: options.add ?? false,
-    remove: options.remove ?? false,
-    dedupe: options.dedupe ?? false,
-    trim: options.trim ?? false,
-    collapse: options.collapse ?? false,
+		useNewlines: options.newlines ?? msg.match(structureRegEx)?.join('').includes('\n'),
+		add: options.add ?? false,
+		remove: options.remove ?? false,
+		dedupe: options.dedupe ?? false,
+		trim: options.trim ?? false,
+		collapse: options.collapse ?? false,
 
-    locale: options.locale,
-    args: options.source ? [...new Set(options.source.match(/(?<=[{<])[^,{}<>]+(?=[}>,])/g))] : []
-  }, options.baseTabs);
+		locale: options.locale,
+		args: options.source ? [...new Set(options.source.match(/(?<=[{<])[^,{}<>]+(?=[}>,])/g))] : []
+	}, options.baseTabs);
 }
 
 function normalizeArgName(argName, availableArgs) {
-  if (!availableArgs.includes(argName)) {
-    if (availableArgs.length === 1) {
-      return availableArgs[0];
-    } else {
-      return availableArgs.find(a => a.toLowerCase() === argName.toLowerCase()) ?? argName;
-    }
-  }
-  return argName;
+	if (!availableArgs.includes(argName)) {
+		if (availableArgs.length === 1) {
+			return availableArgs[0];
+		} else {
+			return availableArgs.find(a => a.toLowerCase() === argName.toLowerCase()) ?? argName;
+		}
+	}
+	return argName;
 }
 
 function printAST(ast, options, level = 0) {
-  const {
-    locale,
-    swapOne = new Set(),
-    useNewlines = false,
-    add = false,
-    remove = false,
-    dedupe = false,
-    trim = false,
-    args = []
-  } = options;
+	const {
+		locale,
+		swapOne = new Set(),
+		useNewlines = false,
+		add = false,
+		remove = false,
+		dedupe = false,
+		trim = false,
+		args = []
+	} = options;
 
-  const localeLower = locale.toLowerCase();
+	const localeLower = locale.toLowerCase();
 
 	if (Array.isArray(ast)) {
-    const swapOneClone = new Set(swapOne);
-    ast.forEach(a => a.type === 1 && swapOneClone.delete(a.value))
+		const swapOneClone = new Set(swapOne);
+		ast.forEach(a => a.type === 1 && swapOneClone.delete(a.value))
 
-    const delimiters = (() => {
-      try {
-        return cldr.extractDelimiters(locale);
-      } catch(err) {
-        return cldr.extractDelimiters(locale.split('-')[0]);
-      }
-    })();
+		const delimiters = (() => {
+			try {
+				return cldr.extractDelimiters(locale);
+			} catch(err) {
+				return cldr.extractDelimiters(locale.split('-')[0]);
+			}
+		})();
 
-    for (const k in delimiters) {
-      if (paddedQuoteLocales.includes(localeLower)) {
-        if (k.endsWith('Start')) {
-          delimiters[k] = delimiters[k].padEnd(2,'\u202f');
-        } else if (k.endsWith('End')) {
-          delimiters[k] = delimiters[k].padStart(2,'\u202f');
-        }
-      }
-    }
+		for (const k in delimiters) {
+			if (paddedQuoteLocales.includes(localeLower)) {
+				if (k.endsWith('Start')) {
+					delimiters[k] = delimiters[k].padEnd(2,'\u202f');
+				} else if (k.endsWith('End')) {
+					delimiters[k] = delimiters[k].padStart(2,'\u202f');
+				}
+			}
+		}
 
-    let
-      quoteStart = delimiters.quotationStart,
-      quoteEnd = delimiters.quotationEnd,
-      singleQuoteStart = delimiters.alternateQuotationStart,
-      singleQuoteEnd = delimiters.alternateQuotationEnd;
+		let
+			quoteStart = delimiters.quotationStart,
+			quoteEnd = delimiters.quotationEnd,
+			singleQuoteStart = delimiters.alternateQuotationStart,
+			singleQuoteEnd = delimiters.alternateQuotationEnd;
 
-    //if (1) { // todo: fromSource
-      if (localeLower.endsWith('-gb')) {
-        quoteStart = delimiters.alternateQuotationStart;
-        quoteEnd = delimiters.alternateQuotationEnd;
-        singleQuoteStart = delimiters.quotationStart;
-        singleQuoteEnd = delimiters.quotationEnd;
-      }
-    //}
+		//if (1) { // todo: fromSource
+		if (localeLower.endsWith('-gb')) {
+			quoteStart = delimiters.alternateQuotationStart;
+			quoteEnd = delimiters.alternateQuotationEnd;
+			singleQuoteStart = delimiters.quotationStart;
+			singleQuoteEnd = delimiters.quotationEnd;
+		}
+		//}
 
 		return ast
-      .filter((i, idx) => !trim || i.type !== 0 || (idx !== 0 && idx !== ast.length - 1) || i.value.trim()) // filter out leading and trailing whitespace
-      .map((ast, idx, arr) => {
-      let trim = options.trim;
-      if (trim && ast.type === 0) {
-        if (arr.length === 1) {
-          trim = 'trim';
-        } else if (!idx) {
-          trim = 'trimStart';
-        } else if (idx === arr.length - 1) {
-          trim = 'trimEnd';
-        }
-      }
-      return printAST(ast, { ...options, swapOne: swapOneClone, trim }, level);
-    }).join('')
+			.filter((i, idx) => !trim || i.type !== 0 || (idx !== 0 && idx !== ast.length - 1) || i.value.trim()) // filter out leading and trailing whitespace
+			.map((ast, idx, arr) => {
+				let trim = options.trim;
+				if (trim && ast.type === 0) {
+					if (arr.length === 1) {
+						trim = 'trim';
+					} else if (!idx) {
+						trim = 'trimStart';
+					} else if (idx === arr.length - 1) {
+						trim = 'trimEnd';
+					}
+				}
+				return printAST(ast, { ...options, swapOne: swapOneClone, trim }, level);
+			}).join('')
 			.replace(/''/g, '|_single_|').replace(/'/g, '|_escape_|').replace(/\|_single_\|/g, "'")
 			.replace(/(?<=\s)\\?'|^\\?'/g, singleQuoteStart) // opening '
-      .replace(/(?<=\S)'(?=\S)/g, '’') // apostrophe
+			.replace(/(?<=\S)'(?=\S)/g, '’') // apostrophe
 			.replace(/\\?'/g, singleQuoteEnd) // closing '
 			.replace(/(?<=\s(\u0648)?)\\?"|^\\?"/g, quoteStart) // opening "
 			.replace(/\\?"/g, quoteEnd) // closing "
@@ -155,8 +155,8 @@ function printAST(ast, options, level = 0) {
 	const type = ast.type;
 
 	if (type === 0) { // straight text
-    const value = swapOne.size ? ast.value.replace(/1/g, `{${[...swapOne].join('|')}}`) : ast.value;
-    text += value[trim]?.() ?? value;
+		const value = swapOne.size ? ast.value.replace(/1/g, `{${[...swapOne].join('|')}}`) : ast.value;
+		text += value[trim]?.() ?? value;
 	}
 	else if (type === 1) { // simple arg
 		text += `{${normalizeArgName(ast.value, args)}}`;
@@ -167,8 +167,8 @@ function printAST(ast, options, level = 0) {
 				if (typeof ast.style === 'string') return `, ${ast.style}`;
 				else return `, ::${ast.style.pattern || ast.style.tokens.map(t => t.stem).join(' ')}`;
 			} else {
-        return '';
-      }
+				return '';
+			}
 		})();
 
 		const typesText = ['number', 'date', 'time'];
@@ -188,44 +188,44 @@ function printAST(ast, options, level = 0) {
 	else if (type === 6) { // plural, selectordinal
 		const supportedCats = getPluralCats(locale, ast.pluralType);
 		const unsupportedCats = [ ...Object.keys(ast.options).filter(o => !/^=\d+$/.test(o)) , ...sortedCats].filter(cat => !supportedCats.includes(cat));
-    if (add) {
+		if (add) {
 			supportedCats.forEach(cat => {
-        if (!/^(fr|pt)/.test(locale) && cat === 'one' && ast.options['=1']) return; // don't create orphaned `one`
-        // add missing supported categories
+				if (!/^(fr|pt)/.test(locale) && cat === 'one' && ast.options['=1']) return; // don't create orphaned `one`
+				// add missing supported categories
 				ast.options[cat] ??= { ...(ast.options.other || ast.options.many || ast.options.few || Object.values(ast.options).at(-1)) };
 			});
-    }
+		}
 
-    if (ast.options.one) {
-      // `one` and `=1` are the same
-      if (ast.options['=1'] && JSON.stringify(ast.options['=1']) === JSON.stringify(ast.options['one'])) {
-        delete ast.options['=1'];
-      }
-    } else if (ast.options['=1'] && /(?<!(=|offset:|"type":\s?))1/.test(JSON.stringify(ast.options['=1'].value))) { // TODO: recursively check actual options
-      // `=1` exists with literal "1" text
-      ast.options.one = ast.options['=1'];
-      delete ast.options['=1'];
-      swapOne.add(ast.value);
-    }
+		if (ast.options.one) {
+			// `one` and `=1` are the same
+			if (ast.options['=1'] && JSON.stringify(ast.options['=1']) === JSON.stringify(ast.options['one'])) {
+				delete ast.options['=1'];
+			}
+		} else if (ast.options['=1'] && /(?<!(=|offset:|"type":\s?))1/.test(JSON.stringify(ast.options['=1'].value))) { // TODO: recursively check actual options
+			// `=1` exists with literal "1" text
+			ast.options.one = ast.options['=1'];
+			delete ast.options['=1'];
+			swapOne.add(ast.value);
+		}
 
-    if (dedupe && ast.options.other) {
-      const otherPrinted = printAST(ast.options.other.value, { locale, args });
-      Object.entries(ast.options).forEach(([k, v]) => {
-        if (k !== 'other' && printAST(v.value, { locale, swapOne, args }) === otherPrinted) {
-          delete ast.options[k];
-        }
-      });
-    }
+		if (dedupe && ast.options.other) {
+			const otherPrinted = printAST(ast.options.other.value, { locale, args });
+			Object.entries(ast.options).forEach(([k, v]) => {
+				if (k !== 'other' && printAST(v.value, { locale, swapOne, args }) === otherPrinted) {
+					delete ast.options[k];
+				}
+			});
+		}
 
-    remove && unsupportedCats.forEach(cat => {
-      const currentKeys = Object.keys(ast.options);
-      if (currentKeys.includes(cat)) {
-        if (currentKeys.length === 1) {
-          ast.options.other = Object.assign({}, ast.options[cat]);
-        }
-        delete ast.options[cat];
-      }
-    });
+		remove && unsupportedCats.forEach(cat => {
+			const currentKeys = Object.keys(ast.options);
+			if (currentKeys.includes(cat)) {
+				if (currentKeys.length === 1) {
+					ast.options.other = Object.assign({}, ast.options[cat]);
+				}
+				delete ast.options[cat];
+			}
+		});
 
 		const typeText = ast.pluralType === 'ordinal' ? 'selectordinal' : 'plural';
 		const offsetText = + ast.offset !== 0 ? ` offset:${ast.offset}` : '';
