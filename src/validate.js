@@ -1,6 +1,11 @@
 import * as pluralCats from 'make-plural/pluralCategories'
 import { Reporter } from './reporter.js';
-import { parse } from 'messageformat-parser';
+import { parse } from '@formatjs/icu-messageformat-parser';
+
+const SELECT = 5;
+const SELECTORDINAL = 6;
+const PLURAL = 6;
+const ARGUMENT = 1;
 
 function getPluralCats(locale) {
   return pluralCats[locale.split('-')[0]] || pluralCats.en;
@@ -64,6 +69,16 @@ export function validateLocales({ locales, sourceLocale }, localesReporter) {
   });
 }
 
+function checkNbsp(message, reporter) {
+  const structure = message.match(structureRegEx)?.join('') || '';
+  const nbspPos = structure.indexOf(String.fromCharCode(160));
+
+  if (nbspPos > -1) {
+    reporter.error('nbsp', `Message contains invalid non-breaking space at position ${nbspPos}.`, { column: nbspPos });
+    return true;
+  }
+}
+
 export function validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale, overrides }, msgReporter = reporter) {
 
   const re = /[\u2000-\u206F\u2E00-\u2E7F\n\r\\'!"#$%&()*+,\-.\/∕:;<=>?@\[\]^_`{|}~]/g; // eslint-disable-line
@@ -84,22 +99,19 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 
   let parsedTarget;
   try {
-    parsedTarget = Object.freeze(parse(targetMessage, getPluralCats(targetLocale)));
+    parsedTarget = Object.freeze(parse(targetMessage, { captureLocation: true, requiresOtherClause: false }));
   }
   catch(e) {
-
-    if (e.message.indexOf('Invalid key') === 0) {
-      const backtickCaptures = e.message.match(/`([^`]*)`/g);
-      const badKey = backtickCaptures[0].slice(1, -1);
-      const pluralArg = backtickCaptures[1].slice(1, -1)
-      const column = targetMessage.indexOf(badKey, targetMessage.indexOf(`{${pluralArg}, plural, {`));
-      msgReporter.error('categories', e.message, { column });
+    if ((targetMessage.match(/{/g) || 0).length !== (targetMessage.match(/}/g) || 0).length) {
+      msgReporter.error('brace', 'Mismatched braces', { column: e.location.start.column });
     }
-    else if ((targetMessage.match(/{/g) || 0).length !== (targetMessage.match(/}/g) || 0).length) {
-      msgReporter.error('brace', 'Mismatched braces. ' + e.message, { column: e.location.start.column });
-    }
-    else {
-      msgReporter.error('parse', e.message, { column: e.location.start.column - 1 });
+    else if (!checkNbsp(targetMessage, msgReporter)) {
+      if (e.message === 'EXPECT_SELECT_ARGUMENT_OPTIONS') {
+        msgReporter.error('parse', `Expected "," but "${e.originalMessage.substr(e.location.start.column, 1)}" found`, { column: e.location.start.column - 1 });
+      }
+      else {
+        msgReporter.error('parse', e.message, { column: e.location.start.column - 1 });
+      }
     }
   }
 
@@ -109,34 +121,41 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
     let sourceTokens;
 
     try {
-      sourceTokens = parse(sourceMessage, getPluralCats(sourceLocale));
+      sourceTokens = parse(sourceMessage, { requiresOtherClause: false });
     }
     catch(e) {
       msgReporter.error('source-error', 'Failed to parse source message.');
       return;
     }
 
-    const checkCases = target => {
+    const checkCases = (target, msg) => {
       target?.forEach(part => {
-        if (['select', 'selectordinal', 'plural'].includes(part.type)) {
-          const hasOther = part.cases.find(c => c.key.trim() === 'other');
-          if (!hasOther) {
-            msgReporter.error('other', 'Missing "other" case');
+        if ([SELECT, PLURAL].includes(part.type)) {
+          if (!part.options.other) {
+            msgReporter.error('other', 'Missing "other" option');
           }
 
-          if (part.type !== 'select') {
-            const pluralType = part.type.includes('ordinal') ? 'ordinal' : 'cardinal';
-            const allowedCats = getPluralCats(targetLocale)[pluralType];
-            const cats = part.cases.map(c => c.key);
-            const missingCats = allowedCats.filter(c => c !== 'other' && !cats.includes(c));
+          if (part.type === PLURAL) {
+            const supportedCats = getPluralCats(targetLocale)[part.pluralType];
+            const cats = Object.keys(part.options);
+            const missingCats = supportedCats.filter(c => c !== 'other' && !cats.includes(c));
             if (missingCats.length) msgReporter.warning('categories', `Missing categories: ${JSON.stringify(missingCats)}`);
+            const unsupportedCats = cats.filter(c => !supportedCats.includes(c));
+
+            unsupportedCats.forEach(cat => {
+              const column = part.options[cat].location.start.offset;
+              msgReporter.error('categories', `Unsupported category "${cat}". Must be one of: "${supportedCats.join('", "')}", or explicit keys like "=0"`, { column });
+            });
           }
+
+          Object.values(part.options).forEach(o => {
+            checkCases(o.value, msg);
+          });
         }
-        checkCases(target.cases);
       });
     };
 
-    checkCases(parsedTarget);
+    checkCases(parsedTarget, targetMessage);
 
     const targetMap = _map(targetTokens);
     const sourceMap = _map(sourceTokens);
@@ -148,38 +167,33 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
       msgReporter.error('argument', `Unrecognized arguments: ${argDiff.join(', ')}. Must be one of: ${Array.from(sourceMap.arguments).join(', ')}`, { column: badArgPos });
     }
 
-    // remove all translated content, leaving only the messageformat structure
-    const structure = targetMessage.match(structureRegEx)?.join('') || '';
-
-    const nbspPos = structure.indexOf(String.fromCharCode(160));
-    if (nbspPos > -1) {
-      msgReporter.error('nbsp', `Message contains invalid non-breaking space at position ${nbspPos}.`, { column: nbspPos });
-    }
+    checkNbsp(targetMessage, msgReporter);
 
     if (targetMap.cases.join(',') !== sourceMap.cases.join(',')) {
 
-      const cleanTargetCases = targetMap.cases.map(c => c.replace(/.+(?<=\|(plural|selectordinal)\|).*/, ''));
-      const cleanSourceCases = sourceMap.cases.map(c => c.replace(/.+(?<=\|(plural|selectordinal)\|).*/, ''));
-      const caseDiff = cleanTargetCases.filter(arg => !cleanSourceCases.includes(arg));
+      const cleanTargetCases = targetMap.cases.map(c => c.replace(/.+(?<=\|(6(ordinal|cardinal))\|).*/, ''));
+      const cleanSourceCases = sourceMap.cases.map(c => c.replace(/.+(?<=\|(6(ordinal|cardinal))\|).*/, ''));
+      const optionDiff = cleanTargetCases.filter(arg => !cleanSourceCases.includes(arg));
 
-      if (caseDiff.length) {
-        msgReporter.error('case', `Unrecognized cases ${JSON.stringify(caseDiff.map(c => c.replace(/.+\|select\|/, '')))}`);
-      }
-      else if (targetMap.nested && targetMap.cases.length === sourceMap.cases.length) {
+      optionDiff.forEach(o => {
+        msgReporter.error('option', `Unrecognized option "${o.replace(/.+\|5undefined\|/, '')}". Must be one of "${cleanSourceCases.map(o => o.replace(/.+\|5undefined\|/, '')).join('", "')}".`);
+      });
+
+      if (targetMap.nested && targetMap.cases.length === sourceMap.cases.length) {
         // TODO: better identify case order vs nesting order
         msgReporter.warning('nest-order', `Nesting order does not match source.`);
       }
     }
 
-    const firstPlural = targetMap.cases.findIndex(i => i.match(/^.+\|(plural|selectordinal)\|/)) + 1;
-    const lastSelect = targetMap.cases.findLastIndex(i => i.match(/^.+\|select\|/)) + 1;
+    const firstPlural = targetMap.cases.findIndex(i => i.match(/^.+\|(6(ordinal|cardinal))\|/)) + 1;
+    const lastSelect = targetMap.cases.findLastIndex(i => i.match(/^.+\|5undefined\|/)) + 1;
 
     if (targetMap.nested && firstPlural && lastSelect && firstPlural < lastSelect) {
       msgReporter.warning('nest-ideal', '"plural" and "selectordinal" should always nest inside "select".');
     }
 
     if (targetTokens.length > 1) {
-      if (targetLocale == sourceLocale && targetTokens.find((token) => typeof token !== 'string' && token.type.match(/plural|select/))) {
+      if (targetLocale == sourceLocale && targetTokens.find((token) => typeof token !== 'string' && [PLURAL, SELECT].includes(token.type))) {
         msgReporter.warning('split','Message split by complex argument')
       }
     }
@@ -246,32 +260,31 @@ export function parseLocales(locales, useJSONObj) {
   }, {});
 }
 
-function _map(tokens, partsMap = { nested: false, arguments: new Set(), cases: [], messageTokens: [] }) {
+function _map(ast, partsMap = { nested: false, arguments: new Set(), cases: [], messageTokens: [] }) {
 
-  tokens.forEach(token => {
+  ast.forEach(token => {
 
     if (typeof token !== 'string') {
 
-      if (token.arg) {
-        partsMap.arguments.add(token.arg);
+      if (token.type === ARGUMENT) {
+        partsMap.arguments.add(token.value);
       }
 
-      if (token.cases) {
+      if (token.options) {
 
         if (partsMap.cases.length) {
           partsMap.nested = true;
         }
 
-        token.cases.forEach((case_) => {
+        Object.entries(token.options).forEach(([k, option]) => {
           switch (token.type) {
-            case 'select':
-            case 'plural':
-            case 'selectordinal':
-            partsMap.cases.push(`${token.arg}|${token.type}|${case_.key}`);
+            case SELECT:
+            case PLURAL:
+            partsMap.cases.push(`${token.value}|${token.type}${token.pluralType}|${k}`);
             break;
           }
 
-          _map(case_.tokens, partsMap);
+          _map(option.value, partsMap);
         });
       }
     }
