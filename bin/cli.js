@@ -33,6 +33,13 @@ program
 	});
 
 program
+	.command('build [locales]')
+	.description('Build locale data for configured locales')
+	.action(() => {
+		program.build = true;
+	});
+
+program
 	.command('print-missing')
 	.description('Output JSON of all source messages that are missing or untranslated in the target')
 	.action(() => {
@@ -98,6 +105,11 @@ program
 	});
 
 program.parse(process.argv);
+
+if (program.build) {
+	await import('../build-cldr-data.js');
+	process.exit();
+}
 
 const pathCombined = program.path || path;
 if (!pathCombined) {
