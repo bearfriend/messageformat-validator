@@ -135,8 +135,7 @@ localesPaths.forEach(async localesPath => {
 	});
 
 	const sourceLocale = program.sourceLocale || source || globalSource;
-	const allowedLocalesString = program.locales || configLocales || globalLocales;
-	const allowedLocales = allowedLocalesString && allowedLocalesString.split(',').concat(sourceLocale);
+	const allowedLocales = (program.locales?.replace(/\s/g, '').split(',') || configLocales || globalLocales || []).concat(sourceLocale);
 	const filteredFiles = !allowedLocales ?
 		files.filter(file => !(/^\..*/g).test(file)) :
 		files.filter(file => allowedLocales.includes(file.split('.')[0]));
