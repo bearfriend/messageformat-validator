@@ -13,7 +13,7 @@
     "lint:eslint": "eslint . --ext .js --ignore-path .gitignore",
     "test": "npm run lint && npm run test:unit",
     "test:unit": "mocha 'test/**/*.test.js'",
-    "prepare": "npm run build && npm t",
+    "prepack": "npm run build && npm t",
     "postinstall": "npm run build",
     "build": "node build-cldr-data.js"
   },
