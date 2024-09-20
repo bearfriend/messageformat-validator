@@ -14,6 +14,7 @@
     "test": "npm run lint && npm run test:unit",
     "test:unit": "mocha 'test/**/*.test.js'",
     "prepare": "npm run build && npm t",
+    "postinstall": "npm run build",
     "build": "node build-cldr-data.js"
   },
   "bin": {
@@ -23,7 +24,8 @@
     ".": "./src/index.js"
   },
   "files": [
-    "/src"
+    "/src",
+    "/build-cldr-data.js"
   ],
   "author": "Danny Gleckler <daniel.gleckler@gmail.com>",
   "license": "MIT",
