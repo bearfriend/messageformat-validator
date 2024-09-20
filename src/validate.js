@@ -32,7 +32,7 @@ export function validateLocales({ locales, sourceLocale }, localesReporter) {
 				reporter.error('extraneous', 'Message does not exist in the source file');
 			}
 			else {
-				if (locales[targetLocale].duplicateKeys.has(key)) reporter.error('duplicate-keys', 'Key appears multiple times');
+				if (locales[targetLocale].duplicateKeys.has(key)) reporter.error('duplicate', `Multiple messages named "${key}"`);
 
 				validateMessage({
 					targetMessage,

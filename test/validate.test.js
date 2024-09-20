@@ -327,7 +327,7 @@ describe('validate', () => {
 				file: `${targetLocale}.json`,
 				contents: `{
           "a": "${sourceMessage}",
-          "a": "${sourceMessage}"
+          a: "${sourceMessage}"
         }`
 			},
 			{
@@ -339,9 +339,9 @@ describe('validate', () => {
 
 			validateLocales({ locales, sourceLocale }, reporter);
 			expect(reporter.issues.length).to.equal(1);
-			expect(reporter.issues[0].type).to.equal('duplicate-keys');
+			expect(reporter.issues[0].type).to.equal('duplicate');
 			expect(reporter.issues[0].level).to.equal('error');
-			expect(reporter.issues[0].msg).to.equal('Key appears multiple times');
+			expect(reporter.issues[0].msg).to.equal('Multiple messages named "a"');
 		});
 
 	});
