@@ -1,3 +1,12 @@
+import findConfig from 'find-config';
+
+export async function getConfig(cwd) {
+	const configPath = findConfig('mfv.config.json', { cwd });
+	const config = configPath ? (await import(`file://${configPath}`, { with: { type: 'json' } }))?.default ?? {} : {};
+	config.__configPath = configPath;
+	return config;
+}
+
 export const sortedCats = ['zero', 'one', 'two', 'few', 'many', 'other'];
 export const paddedQuoteLocales = ['fr', 'fr-ca', 'fr-fr', 'fr-on', 'vi-vn'];
 export const structureRegEx = /(?<=\s*){(.|\n)*?[{}]|\s*}(.|\n)*?[{}]|[{#]|(\s*)}/g;
