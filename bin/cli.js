@@ -5,15 +5,19 @@
 import { parseLocales, validateLocales } from '../src/validate.js';
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import chalk from 'chalk';
-import findConfig from 'find-config';
-import { formatMessage } from '../src/format.js'
 import glob from 'glob';
 import pkg from '../package.json' with { type: 'json' };
 import { program } from 'commander';
-import { structureRegEx } from '../src/utils.js';
+import { getConfig, structureRegEx } from '../src/utils.js';
 
-const configPath = findConfig('mfv.config.json');
-const { path, source: globalSource, locales: globalLocales, jsonObj: globalJsonObj } = configPath ? (await import(`file://${configPath}`, { with: { type: 'json' } }))?.default ?? {} : {};
+let formatMessage;
+
+const {
+	path,
+	source: globalSource,
+	locales: globalLocales,
+	jsonObj: globalJsonObj
+} = getConfig();
 
 program
 	.version(pkg.version)
@@ -74,7 +78,8 @@ program
 	.option('-d, --dedupe', 'Remove complex argument cases that duplicate the `other` case. Takes precedence over --add.')
 	.option('-t, --trim', 'Trim whitespace from both ends of messages')
 	.option('-c, --collapse', 'Collapse repeating whitepace')
-	.action(function() {
+	.action(async function() {
+		formatMessage = (await import('../src/format.js')).formatMessage;
 		program.format = true;
 		const opts = this.opts();
 		program.newlines = opts.newlines;
@@ -110,9 +115,7 @@ localesPaths.forEach(async localesPath => {
 
 	const absLocalesPath = `${process.cwd()}/${localesPath}`;
 
-	const subConfigPath = findConfig('mfv.config.json', { cwd: absLocalesPath });
-
-	const { source, locales: configLocales, jsonObj } = subConfigPath ? (await import(`file://${subConfigPath}`, { with: { type: 'json' } }))?.default ?? {} : {}; /* eslint-disable-line global-require */
+	const { source, locales: configLocales, jsonObj } = await getConfig(absLocalesPath);
 
 	const files = await readdir(absLocalesPath).catch(err => {
 		console.log(`Failed to read ${absLocalesPath}\n`);
