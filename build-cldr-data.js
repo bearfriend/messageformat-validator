@@ -17,11 +17,15 @@ function getDelimiters(locale) {
 
 let cldr;
 await (async() => {
+	let contents = `import cldrData from './cldr-data-default.js';\nexport default cldrData;\n`;
+
 	const config = await getConfig();
+
 	let locales = env.MFV_LOCALES?.split(',') ?? config.locales;
 	locales ??= config.path && (await readdir(join(dirname(config.__configPath), config.path)).catch(() => {}))?.map(f => f.split('.')[0]);
 	locales ??= defaultLocales;
 	const nonDefaultLocales = locales?.filter(l => !defaultLocales.includes(l));
+
 	if (nonDefaultLocales?.length) {
 		let cldrImport;
 		try {
@@ -40,8 +44,7 @@ await (async() => {
 			data[locale].delimiters = getDelimiters(locale);
 		});
 
-		await writeFile(SAVE_PATH, `export default ${JSON.stringify(data, null, '\t')}\n`);
-	} else {
-		await writeFile(SAVE_PATH, `import cldrData from './cldr-data-default.js';\nexport default cldrData;\n`);
+		contents = `export default ${JSON.stringify(data, null, '\t')}\n`;
 	}
+	await writeFile(SAVE_PATH, contents);
 })();
