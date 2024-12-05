@@ -2,22 +2,24 @@
 
 /* eslint-disable no-console */
 
+import { env } from 'node:process';
 import { parseLocales, validateLocales } from '../src/validate.js';
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import chalk from 'chalk';
 import glob from 'glob';
 import pkg from '../package.json' with { type: 'json' };
-import { program } from 'commander';
+import { program, Option } from 'commander';
 import { getConfig, structureRegEx } from '../src/utils.js';
 
-let formatMessage;
+let formatMessage, commandOpts;
+const programArgs = {};
 
 const {
 	path,
 	source: globalSource,
 	locales: globalLocales,
 	jsonObj: globalJsonObj
-} = getConfig();
+} = await getConfig(env.PWD);
 
 program
 	.version(pkg.version)
@@ -33,7 +35,7 @@ program
 	});
 
 program
-	.command('build [locales]')
+	.command('build')
 	.description('Build locale data for configured locales')
 	.action(() => {
 		program.build = true;
@@ -72,8 +74,8 @@ program
 	.description('Rename a message')
 	.action((oldKey, newKey) => {
 		program.rename = true;
-		program.oldKey = oldKey;
-		program.newKey = newKey;
+		programArgs.oldKey = oldKey;
+		programArgs.newKey = newKey;
 	});
 
 program
@@ -84,17 +86,19 @@ program
 	.option('-r, --remove', 'Remove cases for unsupported pural and selectordinal categories')
 	.option('-d, --dedupe', 'Remove complex argument cases that duplicate the `other` case. Takes precedence over --add.')
 	.option('-t, --trim', 'Trim whitespace from both ends of messages')
-	.option('-c, --collapse', 'Collapse repeating whitepace')
+	.addOption(new Option('-q, --quotes <type>', 'Replace quote characters with locale-appropriate characters').choices(['source', 'straight', 'both']))
 	.action(async function() {
 		formatMessage = (await import('../src/format.js')).formatMessage;
 		program.format = true;
-		const opts = this.opts();
+		commandOpts = this.opts();
+		/*
 		program.newlines = opts.newlines;
 		program.add = opts.add;
 		program.remove = opts.remove;
 		program.trim = opts.trim;
-		program.collapse = opts.collapse;
+		program.quotes = opts.quotes;
 		program.dedupe = opts.dedupe
+		*/
 	});
 
 program
@@ -104,14 +108,15 @@ program
 		program.highlight = key;
 	});
 
-program.parse(process.argv);
+await program.parseAsync(process.argv);
+const programOpts = program.opts();
 
 if (program.build) {
 	await import('../build-cldr-data.js');
 	process.exit();
 }
 
-const pathCombined = program.path || path;
+const pathCombined = programOpts.path || path;
 if (!pathCombined) {
 	console.error('Must provide a path to the locale files using either the -p option or a config file.');
 	process.exit(1);
@@ -123,7 +128,7 @@ const noSource = () => {
 };
 
 const localesPaths = glob.sync(pathCombined);
-localesPaths.forEach(async localesPath => {
+localesPaths.forEach(async (localesPath, idx) => {
 
 	const absLocalesPath = `${process.cwd()}/${localesPath}`;
 
@@ -134,11 +139,11 @@ localesPaths.forEach(async localesPath => {
 		throw err;
 	});
 
-	const sourceLocale = program.sourceLocale || source || globalSource;
-	const allowedLocales = (program.locales?.replace(/\s/g, '').split(',') || configLocales || globalLocales || []).concat(sourceLocale);
+	const sourceLocale = programOpts.sourceLocale || source || globalSource;
+	const allowedLocales = programOpts.locales?.replace(/\s/g, '').split(',') || configLocales || globalLocales;
 	const filteredFiles = !allowedLocales ?
 		files.filter(file => !(/^\..*/g).test(file)) :
-		files.filter(file => allowedLocales.includes(file.split('.')[0]));
+		files.filter(file => allowedLocales.concat(sourceLocale).includes(file.split('.')[0]));
 	const targetLocales = filteredFiles.map(file => file.split('.')[0]);
 
 	if (program.removeExtraneous) {
@@ -152,7 +157,7 @@ localesPaths.forEach(async localesPath => {
 	}
 
 	if (program.rename) {
-		console.log(`Renaming "${program.oldKey}" to "${program.newKey}" in:`, targetLocales.join(', '));
+		console.log(`Renaming "${programArgs.oldKey}" to "${programArgs.newKey}" in:`, targetLocales.join(', '));
 	}
 
 	if (program.format) {
@@ -171,7 +176,7 @@ localesPaths.forEach(async localesPath => {
 		});
 	if (!resources) return;
 
-	const useJSONObj = program.jsonObj || jsonObj || globalJsonObj;
+	const useJSONObj = programOpts.jsonObj || jsonObj || globalJsonObj;
 
 	const locales = parseLocales(resources, useJSONObj);
 
@@ -215,7 +220,6 @@ localesPaths.forEach(async localesPath => {
 			if (!allowedLocales || allowedLocales.includes(locale)) {
 
 				let localeContents = locales[locale].contents;
-
 				Object.values(locales[locale].parsed).forEach(t => {
 
 					const source = sourceLocaleParsed[t.key];
@@ -224,20 +228,21 @@ localesPaths.forEach(async localesPath => {
 						const baseTabs = t.match('^\n?(?<tabs>\t*)').groups.tabs
 						const newVal = formatMessage(t.val, {
 							locale,
-							add: program.add,
-							remove: program.remove,
-							newlines: program.newlines,
-							dedupe: program.dedupe,
-							trim: program.trim,
-							collapse: program.collapse,
+							sourceLocale,
+							add: commandOpts.add,
+							remove: commandOpts.remove,
+							newlines: commandOpts.newlines,
+							dedupe: commandOpts.dedupe,
+							trim: commandOpts.trim,
+							collapse: commandOpts.collapse,
 
 							baseTabs: baseTabs.length,
 							key: t.key,
 							source,
 							target: t
 						});
-						const valQuote = program.newlines && newVal.includes('\n') ? '`' : t.valQuote;
-						const valSpace = program.newlines && newVal.includes('\n') ? `\n${baseTabs}` : t.valSpace;
+						const valQuote = commandOpts.newlines && newVal.includes('\n') ? '`' : t.valQuote;
+						const valSpace = commandOpts.newlines && newVal.includes('\n') ? `\n${baseTabs}` : t.valSpace;
 						const old = `${t.keyQuote}${t.key}${t.keyQuote}${t.keySpace}:${t.valSpace}${t.valQuote}${t.val}${t.valQuote}${t.comma}${t.comment}`;
 						const noo = `${t.keyQuote}${t.key}${t.keyQuote}${t.keySpace}:${valSpace}${valQuote}${newVal}${valQuote}${t.comma}${t.comment}`;
 
@@ -262,11 +267,11 @@ localesPaths.forEach(async localesPath => {
 			if (!allowedLocales || allowedLocales.includes(locale)) {
 
 				const localeContents = locales[locale].contents;
-				const t = locales[locale].parsed[program.oldKey];
+				const t = locales[locale].parsed[programArgs.oldKey];
 
 				if (localeContents.includes(t)) {
 					const old = `${t.keyQuote}${t.key}${t.keyQuote}${t.keySpace}:${t.valSpace}${t.valQuote}${t.val}`;
-					const noo = `${t.keyQuote}${program.newKey}${t.keyQuote}${t.keySpace}:${t.valSpace}${t.valQuote}${t.val}`;
+					const noo = `${t.keyQuote}${programArgs.newKey}${t.keyQuote}${t.keySpace}:${t.valSpace}${t.valQuote}${t.val}`;
 
 					count += 1;
 					const newLocaleContents = localeContents.replace(old, noo);
@@ -296,7 +301,7 @@ localesPaths.forEach(async localesPath => {
 
 		if (!allowedLocales || allowedLocales.includes(locale.locale)) {
 			console.log((idx > 0 ? '\n' : '') + chalk.underline(localePath));
-			if (program.issues) {
+			if (programOpts.issues) {
 
 				locale.report.totals.ignored = { warnings: 0, errors: 0 };
 
@@ -347,7 +352,7 @@ localesPaths.forEach(async localesPath => {
 								translatorOutput[issue.key] = issue.source;
 							}
 						}
-						else if (!program.ignore || !program.ignore
+						else if (!programOpts.ignore || !programOpts.ignore
 							.replace(' ','')
 							.split(',')
 							.includes(issue.type)
@@ -405,7 +410,37 @@ localesPaths.forEach(async localesPath => {
 
 	}));
 
-	if (output.some(locale => locale.report && locale.report.totals.errors - locale.report.totals.ignored.errors )) {
+	const totals = {
+		errors: 0,
+		warnings: 0,
+		ignored: 0
+	};
+	let error = false;
+
+	output.forEach(locale => {
+		if (locale.report) {
+			totals.errors += locale.report.totals.errors
+			totals.warnings += locale.report.totals.warnings
+			totals.ignored += locale.report.totals.ignored
+			if (locale.report.totals.errors - locale.report.totals.ignored.errors) {
+				error = true;
+			}
+		}
+	});
+
+	if (totals.errors || totals.warnings) {
+		const color = totals.errors ? 'red' : 'yellow';
+		const total = totals.errors + totals.warnings;
+		const ignored = totals.ignored.errors + totals.ignored.warnings;
+		const cliReport = chalk[color](`\u2716 ${total} issues (${totals.errors} errors, ${totals.warnings} warnings)${ignored ? chalk.grey(` - ${ignored} Ignored`) : ''}`);
+		console.log(`\n${chalk.bold('Totals')}`);
+		console.log(`\n${chalk.underline(localesPath)}`);
+		console.log(cliReport);
+		if (idx < localesPaths.length - 1) console.log(`\n${chalk.bold('---------------')}\n`);
+		return;
+	}
+
+	if (error) {
 		console.error('\nErrors were reported in at least one locale. See details above.');
 		return 1;
 	}

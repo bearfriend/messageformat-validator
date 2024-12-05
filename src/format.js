@@ -1,7 +1,7 @@
 import { hoistSelectors } from '@formatjs/icu-messageformat-parser/manipulator.js';
 import { parse } from '@formatjs/icu-messageformat-parser';
 import { getPluralCats, paddedQuoteLocales, sortedCats, structureRegEx } from './utils.js';
-import cldrData from './cldr-data.js';
+import localeData from './locale-data.js';
 
 function expandASTHashes(ast, parentValue) {
 	if (Array.isArray(ast)) {
@@ -21,11 +21,13 @@ export function formatMessage(msg, options = {}) {
 	let ast;
 
 	try {
-		ast = parse(msg.replace(/'/g, "'''"), { requiresOtherClause: false });
+		msg = options.quotes === 'straight' ? msg.replace(/'/g, "'''") : msg;
+		ast = parse(msg, { requiresOtherClause: false });
 	} catch(err) {
 		try {
+			msg = options.quotes === 'straight' ? msg.replace(/'/g, "'''") : msg;
 			const alteredMsg = msg.replace('\'{', '’{');
-			ast = parse(msg.replace(/'/g, "'''"), { requiresOtherClause: false });
+			ast = parse(alteredMsg, { requiresOtherClause: false });
 			msg = alteredMsg;
 		} catch(err2) {
 			if (err.location) {
@@ -57,9 +59,10 @@ export function formatMessage(msg, options = {}) {
 		remove: options.remove ?? false,
 		dedupe: options.dedupe ?? false,
 		trim: options.trim ?? false,
-		collapse: options.collapse ?? false,
+		quotes: options.quotes,
 
 		locale: options.locale,
+		sourceLocale: options.sourceLocale,
 		args: options.source ? [...new Set(options.source.match(/(?<=[{<])[^,{}<>]+(?=[}>,])/g))] : []
 	}, options.baseTabs);
 }
@@ -78,49 +81,26 @@ function normalizeArgName(argName, availableArgs) {
 function printAST(ast, options, level = 0) {
 	const {
 		locale,
+		sourceLocale,
+		quotes,
 		swapOne = new Set(),
 		useNewlines = false,
 		add = false,
 		remove = false,
 		dedupe = false,
 		trim = false,
-		args = []
+		args = [],
 	} = options;
 
 	const localeLower = locale.toLowerCase();
-	const localeData = cldrData[locale] ?? cldrData[locale.split('-')[0]];
-	const delimiters = localeData.delimiters;
+	const delimiters = (localeData[locale] ?? localeData[locale.split('-')[0]] ?? localeData['en'])?.delimiters;
 
 	if (Array.isArray(ast)) {
+		//console.log(ast);
 		const swapOneClone = new Set(swapOne);
 		ast.forEach(a => a.type === 1 && swapOneClone.delete(a.value))
 
-		for (const k in delimiters) {
-			if (paddedQuoteLocales.includes(localeLower)) {
-				if (k.endsWith('Start')) {
-					delimiters[k] = delimiters[k].padEnd(2,'\u202f');
-				} else if (k.endsWith('End')) {
-					delimiters[k] = delimiters[k].padStart(2,'\u202f');
-				}
-			}
-		}
-
-		let
-			quoteStart = delimiters.quotationStart,
-			quoteEnd = delimiters.quotationEnd,
-			singleQuoteStart = delimiters.alternateQuotationStart,
-			singleQuoteEnd = delimiters.alternateQuotationEnd;
-
-		//if (1) { // todo: fromSource
-		if (localeLower.endsWith('-gb')) {
-			quoteStart = delimiters.alternateQuotationStart;
-			quoteEnd = delimiters.alternateQuotationEnd;
-			singleQuoteStart = delimiters.quotationStart;
-			singleQuoteEnd = delimiters.quotationEnd;
-		}
-		//}
-
-		return ast
+		let msg = ast
 			.filter((i, idx) => !trim || i.type !== 0 || (idx !== 0 && idx !== ast.length - 1) || i.value.trim()) // filter out leading and trailing whitespace
 			.map((ast, idx, arr) => {
 				let trim = options.trim;
@@ -134,14 +114,101 @@ function printAST(ast, options, level = 0) {
 					}
 				}
 				return printAST(ast, { ...options, swapOne: swapOneClone, trim }, level);
-			}).join('')
-			.replace(/''/g, '|_single_|').replace(/'/g, '|_escape_|').replace(/\|_single_\|/g, "'")
-			.replace(/(?<=\s)\\?'|^\\?'/g, singleQuoteStart) // opening '
-			.replace(/(?<=\S)'(?=\S)/g, '’') // apostrophe
-			.replace(/\\?'/g, singleQuoteEnd) // closing '
-			.replace(/(?<=\s(\u0648)?)\\?"|^\\?"/g, quoteStart) // opening "
-			.replace(/\\?"/g, quoteEnd) // closing "
-			.replace(/\|_escape_\|/g, "'");
+			}).join('');
+
+		if (quotes) {
+			for (const k in delimiters) {
+				if (paddedQuoteLocales.includes(localeLower)) {
+					if (k.endsWith('Start')) {
+						delimiters[k] = delimiters[k].padEnd(2,'\u202f');
+					} else if (k.endsWith('End')) {
+						delimiters[k] = delimiters[k].padStart(2,'\u202f');
+					}
+				}
+			}
+
+			let
+				quoteStart = delimiters.quotationStart,
+				quoteEnd = delimiters.quotationEnd,
+				altStart = delimiters.alternateQuotationStart,
+				altEnd = delimiters.alternateQuotationEnd;
+
+			//if (1) { // todo: fromSource
+			if (localeLower.endsWith('-gb')) {
+				quoteStart = delimiters.alternateQuotationStart;
+				quoteEnd = delimiters.alternateQuotationEnd;
+				altStart = delimiters.quotationStart;
+				altEnd = delimiters.quotationEnd;
+			}
+			//}
+
+			if (quotes === 'straight' || quotes === 'both') {
+				msg = msg
+					.replace(/''/g, '|_single_|').replace(/'/g, '|_escape_|').replace(/\|_single_\|/g, "'")
+					.replace(/(?<=\s)\\?'|^\\?'/g, altStart) // opening '
+					.replace(/(?<=\S)'(?=\S)/g, '’') // apostrophe
+					.replace(/\\?'/g, altEnd) // closing '
+					.replace(/(?<=\s(\u0648)?)\\?"|^\\?"/g, quoteStart) // opening "
+					.replace(/\\?"/g, quoteEnd) // closing "
+					.replace(/\|_escape_\|/g, "'");
+			}
+
+			if (quotes === 'source' || quotes === 'both') {
+				const {
+					quoteEnd: sourceQuoteEnd,
+					quoteStart: sourceQuoteStart,
+					altEnd: sourceAltEnd,
+					altStart: sourceAltStart
+				} = (locale => {
+					console.log(locale);
+					const delimiters = (localeData[locale] ?? localeData[locale.split('-')[0]] ?? localeData['en'])?.delimiters;
+
+					for (const k in delimiters) {
+						if (paddedQuoteLocales.includes(locale.toLowerCase())) {
+							if (k.endsWith('Start')) {
+								delimiters[k] = delimiters[k].padEnd(2,'\u202f');
+							} else if (k.endsWith('End')) {
+								delimiters[k] = delimiters[k].padStart(2,'\u202f');
+							}
+						}
+					}
+
+					let
+						quoteStart = delimiters.quotationStart,
+						quoteEnd = delimiters.quotationEnd,
+						altStart = delimiters.alternateQuotationStart,
+						altEnd = delimiters.alternateQuotationEnd;
+
+					//if (1) { // todo: fromSource
+					if (locale.toLowerCase().endsWith('-gb')) {
+						quoteStart = delimiters.alternateQuotationStart;
+						quoteEnd = delimiters.alternateQuotationEnd;
+						altStart = delimiters.quotationStart;
+						altEnd = delimiters.quotationEnd;
+					}
+
+					return { quoteStart, quoteEnd, altStart, altEnd };
+
+				})(sourceLocale);
+
+				/* eslint-disable no-useless-escape */
+				msg = msg
+					.replace(new RegExp(`''`, 'g'), '|_single_|').replace(/'/g, '|_escape_|').replace(/\|_single_\|/g, "'")
+					.replace(new RegExp(`(?<=\s)\\\\?${sourceAltStart}|^\\\\?${sourceAltStart}`, 'g'), '|_altStart_|') // opening alt
+					.replace(new RegExp(`(?<=\\S)’(?=\\S)`, 'g'), '|_apostrophe_|') // apostrophe
+					.replace(new RegExp(`\\\\?${sourceAltEnd}`, 'g'), '|_altEnd_|') // closing alt
+					.replace(new RegExp(`(?<=\\s(\\u0648)?)\\\\?${sourceQuoteStart}|^\\\\?${sourceQuoteStart}`, 'g'), '|_quoteStart_|') // opening quote
+					.replace(new RegExp(`\\\\?${sourceQuoteEnd}`, 'g'), '|_quoteEnd_|') // closing quote
+					.replace(/\|_apostrophe_\|/g, "’")
+					.replace(/\|_escape_\|/g, "'")
+					.replace(/\|_quoteStart_\|/g, quoteStart)
+					.replace(/\|_quoteEnd_\|/g, quoteEnd)
+					.replace(/\|_altStart_\|/g, altStart)
+					.replace(/\|_altEnd_\|/g, altEnd);
+				/* eslint-enable no-useless-escape */
+			}
+		}
+		return msg;
 	}
 
 	let text = '';
@@ -151,9 +218,20 @@ function printAST(ast, options, level = 0) {
 
 	if (type === 0) { // straight text
 		const value = swapOne.size ? ast.value.replace(/1/g, `{${[...swapOne].join('|')}}`) : ast.value;
+		if (swapOne.size) {
+			console.log('swapping...');
+			console.log('was:', ast.value);
+			console.log('now:', value);
+		}
+		console.log(text);
 		text += value[trim]?.() ?? value;
 	}
 	else if (type === 1) { // simple arg
+		if (ast.value.startsWith('disgw')) {
+			console.log(ast);
+
+			console.log(args);
+		}
 		text += `{${normalizeArgName(ast.value, args)}}`;
 	}
 	else if ([2, 3, 4].includes(type)) { // number, date, time
@@ -170,6 +248,9 @@ function printAST(ast, options, level = 0) {
 		text += `{${normalizeArgName(ast.value, args)}, ${typesText[type - 2]}${style}}`;
 	}
 	else if (type === 5) { // select
+
+
+
 		const optionsText = Object.entries(ast.options)
 			.sort((a, b) => {
 				return a[0] === 'other' ? 1 : (b[0] === 'other' ? -1 : 0);
@@ -199,6 +280,10 @@ function printAST(ast, options, level = 0) {
 		} else if (ast.options['=1'] && /(?<!(=|offset:|"type":\s?))1/.test(JSON.stringify(ast.options['=1'].value))) { // TODO: recursively check actual options
 			// `=1` exists with literal "1" text
 			ast.options.one = ast.options['=1'];
+			console.log('=1 with 1');
+			console.log(JSON.stringify(ast.options.one));
+			console.log('ADDING');
+			console.log(ast.value);
 			delete ast.options['=1'];
 			swapOne.add(ast.value);
 		}
@@ -210,6 +295,17 @@ function printAST(ast, options, level = 0) {
 					delete ast.options[k];
 				}
 			});
+		}
+
+		// replace a bad category if possible
+		const usedCats = Object.keys(ast.options);
+		const unusedCats = supportedCats.filter(c => !usedCats.includes(c));
+		if (unusedCats.length === 1) {
+			const unrecognizedCats = usedCats.filter(c => !/^=\d+$/.test(c) && !supportedCats.includes(c));
+			if (unrecognizedCats.length === 1) {
+				ast.options[unusedCats[0]] = ast.options[unrecognizedCats[0]];
+				delete ast.options[unrecognizedCats[0]];
+			}
 		}
 
 		remove && unsupportedCats.forEach(cat => {
@@ -234,6 +330,12 @@ function printAST(ast, options, level = 0) {
 		}).join('') + (useNewlines ? newline : '');
 
 		text += `{${normalizeArgName(ast.value, args)}, ${typeText},${offsetText}${optionsText}}`;
+
+		if (swapOne.size) {
+			console.log('OPT TEXT');
+			console.log(optionsText);
+			console.log(text);
+		}
 	}
 	else if (type === 7) { // #
 		text += '#';
