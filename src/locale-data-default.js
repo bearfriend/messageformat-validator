@@ -63,7 +63,7 @@ export default {
 			"alternateQuotationEnd": "’"
 		}
 	},
-	"fr-fr": {
+	"fr-ca": {
 		"delimiters": {
 			"quotationStart": "«",
 			"quotationEnd": "»",

@@ -1,4 +1,6 @@
+import { env } from 'node:process';
 import findConfig from 'find-config';
+import localeData from './locale-data.js';
 
 export async function getConfig(cwd) {
 	const configPath = findConfig('mfv.config.json', { cwd });
@@ -16,6 +18,11 @@ export async function getConfig(cwd) {
 export const sortedCats = ['zero', 'one', 'two', 'few', 'many', 'other'];
 export const paddedQuoteLocales = ['fr', 'fr-ca', 'fr-fr', 'fr-on', 'vi-vn'];
 export const structureRegEx = /(?<=\s*){(.|\n)*?[{}]|\s*}(.|\n)*?[{}]|[{#]|(\s*)}/g;
+
+export async function getLocaleData(locale) {
+	locale = (await getConfig(env.PWD))?.localesMap[locale] || locale;
+	return (localeData[locale] ?? localeData[locale.split('-')[0]] ?? localeData['en']);
+}
 
 export function getPluralCats(locale, pluralType) {
 	return new Intl.PluralRules(locale, { type: pluralType }).resolvedOptions().pluralCategories;
