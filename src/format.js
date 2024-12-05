@@ -1,7 +1,6 @@
 import { hoistSelectors } from '@formatjs/icu-messageformat-parser/manipulator.js';
 import { parse } from '@formatjs/icu-messageformat-parser';
-import { getPluralCats, paddedQuoteLocales, sortedCats, structureRegEx } from './utils.js';
-import localeData from './locale-data.js';
+import { getLocaleData, getPluralCats, paddedQuoteLocales, sortedCats, structureRegEx } from './utils.js';
 
 function expandASTHashes(ast, parentValue) {
 	if (Array.isArray(ast)) {
@@ -93,7 +92,7 @@ function printAST(ast, options, level = 0) {
 	} = options;
 
 	const localeLower = locale.toLowerCase();
-	const delimiters = (localeData[locale] ?? localeData[locale.split('-')[0]] ?? localeData['en'])?.delimiters;
+	const delimiters = getLocaleData(locale).delimiters;
 
 	if (Array.isArray(ast)) {
 		//console.log(ast);
@@ -160,8 +159,7 @@ function printAST(ast, options, level = 0) {
 					altEnd: sourceAltEnd,
 					altStart: sourceAltStart
 				} = (locale => {
-					console.log(locale);
-					const delimiters = (localeData[locale] ?? localeData[locale.split('-')[0]] ?? localeData['en'])?.delimiters;
+					const delimiters = getLocaleData(locale).delimiters;
 
 					for (const k in delimiters) {
 						if (paddedQuoteLocales.includes(locale.toLowerCase())) {

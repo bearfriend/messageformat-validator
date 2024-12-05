@@ -4,6 +4,7 @@ import { formatList, getConfig } from './src/utils.js';
 import { dirname, join, posix } from 'node:path';
 
 const defaultLocales = ['ar', 'cy', 'da', 'de', 'en', 'en-gb', 'es', 'es-es', 'fr', 'fr-ca', 'fr-fr', 'haw', 'hi', 'ja', 'ko', 'mi', 'nl', 'pt', 'sv', 'tr', 'zh-cn', 'zh-tw'];
+const defaultLocaleMap = { 'fr-on': 'fr-ca' };
 
 const SAVE_PATH = posix.join(dirname(import.meta.url), 'src/cldr-data.js').replace(/file:(\/c:)?/i, '');
 
@@ -20,11 +21,12 @@ await (async() => {
 	let contents = `import localeData from './locale-data-default.js';\nexport default localeData;\n`;
 
 	const config = await getConfig();
+	const localeMap = config.localeMap || defaultLocaleMap;
 
 	let locales = env.MFV_LOCALES?.split(',') ?? config.locales;
 	locales ??= config.path && (await readdir(join(dirname(config.__configPath), config.path)).catch(() => {}))?.map(f => f.split('.')[0]);
 	locales ??= defaultLocales;
-	const nonDefaultLocales = locales?.filter(l => !defaultLocales.includes(l));
+	const nonDefaultLocales = locales?.filter(l => !defaultLocales.includes(localeMap[l] ?? l));
 
 	if (nonDefaultLocales?.length) {
 		let cldrImport;
