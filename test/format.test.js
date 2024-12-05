@@ -17,9 +17,15 @@ describe('formatMessage', () => {
 		{ locale: 'fr', expected: `This isn’t «\u202fcorrect\u202f»` },
 		{ locale: 'sv', expected: `This isn’t ”correct”` },
 	].forEach(({ locale, expected }) => {
-		it(`should replace straight quotes with "${locale}" quotes with no options`, () => {
+		it(`should replace straight quotes with "${locale}" quotes when "quotes" option is "straight"`, () => {
 			const message = `This isn't "correct"`;
-			const formatted = formatMessage(message, { locale });
+			const formatted = formatMessage(message, { locale, quotes: 'straight' });
+			expect(formatted).to.equal(expected);
+		});
+
+		it(`should replace source quotes with "${locale}" quotes when "quotes" option is "source"`, () => {
+			const message = `This isn’t “correct”`;
+			const formatted = formatMessage(message, { locale, sourceLocale: 'en', quotes: 'source' });
 			expect(formatted).to.equal(expected);
 		});
 	});
@@ -105,13 +111,6 @@ describe('formatMessage', () => {
 		expect(formatted).to.equal(expected);
 	});
 
-	it.skip(`should remove duplicate categories with no options`, () => {
-		const message = `{a, plural, one {value} other {value2}}`;
-		const expected = `{a, plural, one {value}}`;
-		const formatted = formatMessage(message, { locale });
-		expect(formatted).to.equal(expected);
-	});
-
 	it(`should remove categories that are copies of a lower-precedence key with the "dedupe" option`, () => {
 		const message = `{a, plural, one {value} other {value}}`;
 		const expected = `{a, plural, other {value}}`;
@@ -175,6 +174,20 @@ describe('formatMessage', () => {
 		const message = `\n{a, plural, other { value {value2} value3 }}`;
 		const expected = `{a, plural, other {value {value2} value3}}`;
 		const formatted = formatMessage(message, { locale, trim: true });
+		expect(formatted).to.equal(expected);
+	});
+
+	it(`should replace bad plural categories with no options`, () => {
+		const message = `{a, plural, one {b} अन्य {च}}`;
+		const expected = `{a, plural, one {b} other {च}}`;
+		const formatted = formatMessage(message, { locale });
+		expect(formatted).to.equal(expected);
+	});
+
+	it(`should not replace bad plural categories when ambiguous`, () => {
+		const message = `{a, plural, अन्य {च}}`;
+		const expected = `{a, plural, अन्य {च}}`;
+		const formatted = formatMessage(message, { locale });
 		expect(formatted).to.equal(expected);
 	});
 

@@ -17,7 +17,7 @@ function getDelimiters(locale) {
 
 let cldr;
 await (async() => {
-	let contents = `import cldrData from './cldr-data-default.js';\nexport default cldrData;\n`;
+	let contents = `import localeData from './locale-data-default.js';\nexport default localeData;\n`;
 
 	const config = await getConfig();
 
@@ -39,12 +39,17 @@ await (async() => {
 		const data = {};
 
 		locales.forEach(locale => {
-			locale = locale.trim().toLowerCase();
+			try {
+				locale = Intl.getCanonicalLocales(locale.trim().toLowerCase())[0];
+			} catch(e) {
+				stderr.write(e.message);
+				process.exit(1);
+			}
 			data[locale] = {};
 			data[locale].delimiters = getDelimiters(locale);
 		});
 
-		contents = `export default ${JSON.stringify(data, null, '\t')}\n`;
+		contents = `import defaultLocaleData from './locale-data-default.js';export default { ...${JSON.stringify(data, null, '\t')}\n`;
 	}
 	await writeFile(SAVE_PATH, contents);
 })();

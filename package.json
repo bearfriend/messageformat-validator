@@ -15,7 +15,7 @@
     "test:unit": "mocha 'test/**/*.test.js'",
     "prepack": "npm run build && npm t",
     "postinstall": "npm run build",
-    "build": "node build-cldr-data.js"
+    "build": "node build-locale-data.js"
   },
   "bin": {
     "mfv": "bin/cli.js"
@@ -25,14 +25,14 @@
   },
   "files": [
     "/src",
-    "/build-cldr-data.js"
+    "/build-locale-data.js"
   ],
   "author": "Danny Gleckler <daniel.gleckler@gmail.com>",
   "license": "MIT",
   "dependencies": {
     "@formatjs/icu-messageformat-parser": "^2.7.8",
     "chalk": "^4.1.0",
-    "commander": "^6.1.0",
+    "commander": "^12.1.0",
     "esm": "^3.2.25",
     "find-config": "^1.0.0",
     "glob": "^7.1.6"
@@ -43,8 +43,8 @@
     "@eslint/compat": "^1.1.1",
     "@eslint/eslintrc": "^3.1.0",
     "@eslint/js": "^9.10.0",
-    "cldr": "^7.5.0",
     "chai": "^5.1.1",
+    "cldr": "^7.5.0",
     "eslint": "^8.57.0",
     "globals": "^15.9.0",
     "mocha": "^10.7.3"

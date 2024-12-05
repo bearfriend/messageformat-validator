@@ -4,6 +4,12 @@ export async function getConfig(cwd) {
 	const configPath = findConfig('mfv.config.json', { cwd });
 	const config = configPath ? (await import(`file://${configPath}`, { with: { type: 'json' } }))?.default ?? {} : {};
 	config.__configPath = configPath;
+
+	if (config.locales !== undefined && !Array.isArray(config.locales)) {
+		console.error('locales config must be an array');
+		process.exit(1);
+	}
+
 	return config;
 }
 

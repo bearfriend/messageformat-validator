@@ -37,9 +37,9 @@ describe('validate', () => {
 			expect(reporter.issues[0].msg).to.equal('Message has not been translated');
 		});
 
-		// categories
+		// category
 
-		it('generates a "categories-missing" warning when a target message is missing supported plural categories', () => {
+		it('generates a "category-missing" warning when a target message is missing supported plural categories', () => {
 			targetLocale = 'cy-gb';
 			const sourceMessage = '{a, plural, one {} other {}}';
 			const targetMessage = '{a, plural, one {} other {}}';
@@ -47,12 +47,12 @@ describe('validate', () => {
 			reporter._config.locale = targetLocale;
 			validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale }, reporter);
 			expect(reporter.issues.length).to.equal(1);
-			expect(reporter.issues[0].type).to.equal('categories-missing');
+			expect(reporter.issues[0].type).to.equal('category-missing');
 			expect(reporter.issues[0].level).to.equal('warning');
 			expect(reporter.issues[0].msg).to.equal('Missing categories "zero", "two", "few", and "many"');
 		});
 
-		it('generates "categories" errors when a target message uses unsupported plural categories', () => {
+		it('generates "category" errors when a target message uses unsupported plural categories', () => {
 			const sourceMessage = '{a, plural, one {} other {}}';
 			const targetMessage = '{a, plural, =1 {} one {} two {} few {} many {} other {}}';
 			reporter.config(targetMessage, sourceMessage, 'key');
@@ -60,27 +60,27 @@ describe('validate', () => {
 
 			expect(reporter.issues.length).to.equal(3);
 
-			expect(reporter.issues[0].type).to.equal('categories');
+			expect(reporter.issues[0].type).to.equal('category');
 			expect(reporter.issues[0].level).to.equal('error');
 			expect(reporter.issues[0].msg).to.equal('Unsupported category "two". Locale supports "one", "other", and explicit keys like "=0".');
 
-			expect(reporter.issues[1].type).to.equal('categories');
+			expect(reporter.issues[1].type).to.equal('category');
 			expect(reporter.issues[1].level).to.equal('error');
 			expect(reporter.issues[1].msg).to.equal('Unsupported category "few". Locale supports "one", "other", and explicit keys like "=0".');
 
-			expect(reporter.issues[2].type).to.equal('categories');
+			expect(reporter.issues[2].type).to.equal('category');
 			expect(reporter.issues[2].level).to.equal('error');
 			expect(reporter.issues[2].msg).to.equal('Unsupported category "many". Locale supports "one", "other", and explicit keys like "=0".');
 		});
 
-		it('generates "categories" errors when a target message uses nested unsupported plural categories', () => {
+		it('generates "category" errors when a target message uses nested unsupported plural categories', () => {
 			const sourceMessage = '{a, plural, one {} other {}}';
 			const targetMessage = '{a, plural, one {{a, plural, one {} two {} other {}}} other {}}';
 			reporter.config(targetMessage, sourceMessage, 'key');
 			validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale }, reporter);
 
 			expect(reporter.issues.length).to.equal(1);
-			expect(reporter.issues[0].type).to.equal('categories');
+			expect(reporter.issues[0].type).to.equal('category');
 			expect(reporter.issues[0].level).to.equal('error');
 			expect(reporter.issues[0].msg).to.equal('Unsupported category "two". Locale supports "one", "other", and explicit keys like "=0".');
 		});
@@ -161,7 +161,9 @@ describe('validate', () => {
 			expect(reporter.issues[1].msg).to.equal('Unrecognized option "d". Argument uses "b" and "other".');
 		});
 
-		it('generates an "option" error with missing options in select arguments', () => {
+
+
+		it('generates an "option-missing" error with missing options in select arguments', () => {
 			const sourceMessage = '{a, select, b {} other {}}';
 			const targetMessage = '{a, select, other {}}';
 			reporter.config(targetMessage, sourceMessage, 'key');
@@ -183,7 +185,7 @@ describe('validate', () => {
 			expect(reporter.issues.length).to.equal(1);
 			expect(reporter.issues[0].type).to.equal('nbsp');
 			expect(reporter.issues[0].level).to.equal('error');
-			expect(reporter.issues[0].msg).to.equal('Message contains invalid non-breaking space at position 11');
+			expect(reporter.issues[0].msg).to.equal('Message structure contains non-breaking space at position 11');
 		});
 
 		// nest
@@ -197,6 +199,15 @@ describe('validate', () => {
 			expect(reporter.issues[0].type).to.equal('nest-order');
 			expect(reporter.issues[0].level).to.equal('warning');
 			expect(reporter.issues[0].msg).to.equal('Nesting order does not match source');
+		});
+
+		it.skip('does not generate a "nest-order" error with non-nested messages', () => {
+			const sourceMessage = '{a, select, other {}} {b, select, other {}}';
+			const targetMessage = '{b, select, other {}} {a, select, other {}}';
+			reporter.config(targetMessage, sourceMessage, 'key');
+			validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale }, reporter);
+			console.log(reporter);
+			expect(reporter.issues.length).to.equal(0);
 		});
 
 		it('generates a "nest-ideal" error with plural inside select', () => {
@@ -251,13 +262,13 @@ describe('validate', () => {
 
 		// source
 
-		it('generates a "source-error" error an unparseable source message', () => {
+		it('generates a "source" error an unparseable source message', () => {
 			const sourceMessage = '{a, select other {}}';
 			const targetMessage = '{a, select, other {}}';
 			reporter.config(targetMessage, sourceMessage, 'key');
 			validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale }, reporter);
 			expect(reporter.issues.length).to.equal(1);
-			expect(reporter.issues[0].type).to.equal('source-error');
+			expect(reporter.issues[0].type).to.equal('source');
 			expect(reporter.issues[0].level).to.equal('error');
 			expect(reporter.issues[0].msg).to.equal('Failed to parse source message');
 		});
@@ -289,7 +300,7 @@ describe('validate', () => {
 			expect(reporter.issues.length).to.equal(1);
 			expect(reporter.issues[0].type).to.equal('extraneous');
 			expect(reporter.issues[0].level).to.equal('error');
-			expect(reporter.issues[0].msg).to.equal('Message does not exist in the source file');
+			expect(reporter.issues[0].msg).to.equal('Message does not exist in the source locale');
 		});
 
 		// missing
@@ -315,7 +326,7 @@ describe('validate', () => {
 			expect(reporter.issues.length).to.equal(1);
 			expect(reporter.issues[0].type).to.equal('missing');
 			expect(reporter.issues[0].level).to.equal('error');
-			expect(reporter.issues[0].msg).to.equal('Message missing from locale file');
+			expect(reporter.issues[0].msg).to.equal('Message missing from the target locale');
 		});
 
 		// duplicate-keys

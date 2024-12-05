@@ -103,6 +103,14 @@ export default {
 			"alternateQuotationEnd": "’"
 		}
 	},
+	"mi": {
+		"delimiters": {
+			"quotationStart": "\"",
+			"quotationEnd": "\"",
+			"alternateQuotationStart": "\"",
+			"alternateQuotationEnd": "\""
+		}
+	},
 	"nl": {
 		"delimiters": {
 			"quotationStart": "‘",

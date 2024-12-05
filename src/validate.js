@@ -29,7 +29,7 @@ export function validateLocales({ locales, sourceLocale }, localesReporter) {
 			reporter.config(targetMessages[key], sourceMessages[key]);
 
 			if (!sourceMessage) {
-				reporter.error('extraneous', 'Message does not exist in the source file');
+				reporter.error('extraneous', 'Message does not exist in the source locale');
 			}
 			else {
 				if (locales[targetLocale].duplicateKeys.has(key)) reporter.error('duplicate', `Multiple messages named "${key}"`);
@@ -49,7 +49,7 @@ export function validateLocales({ locales, sourceLocale }, localesReporter) {
 		if (missingKeys.length) {
 			missingKeys.forEach((key) => {
 				reporter.config(sourceMessages[key], sourceMessages[key]);
-				reporter.error('missing', 'Message missing from locale file')
+				reporter.error('missing', 'Message missing from the target locale')
 			})
 		}
 
@@ -68,7 +68,7 @@ function checkNbsp(message, reporter) {
 	const nbspPos = structure.indexOf(String.fromCharCode(160));
 
 	if (nbspPos > -1) {
-		reporter.error('nbsp', `Message contains invalid non-breaking space at position ${nbspPos}`, { column: nbspPos });
+		reporter.error('nbsp', `Message structure contains non-breaking space at position ${nbspPos}`, { column: nbspPos });
 		return true;
 	}
 }
@@ -118,7 +118,7 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 			sourceTokens = parse(sourceMessage, { requiresOtherClause: false });
 		}
 		catch(e) {
-			msgReporter.error('source-error', 'Failed to parse source message');
+			msgReporter.error('source', 'Failed to parse source message');
 			return;
 		}
 
@@ -133,12 +133,12 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 						const supportedCats = getPluralCats(targetLocale, part.pluralType);
 						const cats = Object.keys(part.options);
 						const missingCats = supportedCats.filter(c => c !== 'other' && !cats.includes(c));
-						if (missingCats.length) msgReporter.warning('categories-missing', `Missing ${missingCats.length === 1 ? 'category' : 'categories'} ${formatList(sortedCats.filter(c => missingCats.includes(c)).map(i => `"${i}"`))}`);
+						if (missingCats.length) msgReporter.warning('category-missing', `Missing ${missingCats.length === 1 ? 'category' : 'categories'} ${formatList(sortedCats.filter(c => missingCats.includes(c)).map(i => `"${i}"`))}`);
 						const unsupportedCats = cats.filter(c => !/^=\d+$/.test(c) && !supportedCats.includes(c));
 
 						unsupportedCats.forEach(cat => {
 							const column = part.options[cat].location.start.offset;
-							msgReporter.error('categories', `Unsupported category "${cat}". Locale supports "${supportedCats.join('", "')}", and explicit keys like "=0".`, { column });
+							msgReporter.error('category', `Unsupported category "${cat}". Locale supports "${supportedCats.join('", "')}", and explicit keys like "=0".`, { column });
 						});
 					}
 
@@ -175,7 +175,8 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 
 			const missingOptions = cleanSourceCases.filter(arg => !cleanTargetCases.includes(arg));
 			missingOptions.forEach(o => {
-				msgReporter.error('option-missing', `Missing option "${o.replace(/.+\|5undefined\|/, '')}"`);
+				o = o.replace(/.+\|5undefined\|/, '');
+				o !== 'other' && msgReporter.error('option-missing', `Missing option "${o}"`);
 			});
 
 			if (targetMap.nested && targetMap.cases.length === sourceMap.cases.length) {
@@ -261,7 +262,8 @@ export function parseLocales(locales, useJSONObj) {
 }
 
 function _map(ast, partsMap = { nested: false, arguments: new Set(), cases: [], messageTokens: [] }) {
-
+	//console.log(ast);
+	//console.log(JSON.stringify(partsMap, null, '\t'));
 	ast.forEach(token => {
 
 		if (typeof token !== 'string') {
