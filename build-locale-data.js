@@ -6,7 +6,7 @@ import { dirname, join, posix } from 'node:path';
 const defaultLocales = ['ar', 'cy', 'da', 'de', 'en', 'en-gb', 'es', 'es-es', 'fr', 'fr-ca', 'fr-fr', 'haw', 'hi', 'ja', 'ko', 'mi', 'nl', 'pt', 'sv', 'tr', 'zh-cn', 'zh-tw'];
 const defaultLocaleMap = { 'fr-on': 'fr-ca' };
 
-const SAVE_PATH = posix.join(dirname(import.meta.url), 'src/cldr-data.js').replace(/file:(\/c:)?/i, '');
+const SAVE_PATH = posix.join(dirname(import.meta.url), 'src/locale-data.js').replace(/file:(\/c:)?/i, '');
 
 function getDelimiters(locale) {
 	try {

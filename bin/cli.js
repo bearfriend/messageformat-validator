@@ -112,7 +112,7 @@ await program.parseAsync(process.argv);
 const programOpts = program.opts();
 
 if (program.build) {
-	await import('../build-cldr-data.js');
+	await import('../build-locale-data.js');
 	process.exit();
 }
 
