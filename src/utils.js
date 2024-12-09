@@ -20,7 +20,7 @@ export const paddedQuoteLocales = ['fr', 'fr-ca', 'fr-fr', 'fr-on', 'vi-vn'];
 export const structureRegEx = /(?<=\s*){(.|\n)*?[{}]|\s*}(.|\n)*?[{}]|[{#]|(\s*)}/g;
 
 export async function getLocaleData(locale) {
-	locale = (await getConfig(env.PWD))?.localesMap[locale] || locale;
+	locale = (await getConfig(env.PWD))?.localesMap?.[locale] || locale;
 	return (localeData[locale] ?? localeData[locale.split('-')[0]] ?? localeData['en']);
 }
 
