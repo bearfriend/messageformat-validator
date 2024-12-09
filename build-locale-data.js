@@ -51,7 +51,7 @@ await (async() => {
 			data[locale].delimiters = getDelimiters(locale);
 		});
 
-		contents = `import defaultLocaleData from './locale-data-default.js';export default { ...${JSON.stringify(data, null, '\t')}\n`;
+		contents = `import defaultLocaleData from './locale-data-default.js';\nexport default { ...defaultLocaleData, ...${JSON.stringify(data, null, '\t')}}\n`;
 	}
 	await writeFile(SAVE_PATH, contents);
 })();
