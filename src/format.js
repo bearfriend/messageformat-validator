@@ -95,7 +95,6 @@ function printAST(ast, options, level = 0) {
 	const delimiters = getLocaleData(locale).delimiters;
 
 	if (Array.isArray(ast)) {
-		//console.log(ast);
 		const swapOneClone = new Set(swapOne);
 		ast.forEach(a => a.type === 1 && swapOneClone.delete(a.value))
 
@@ -216,20 +215,9 @@ function printAST(ast, options, level = 0) {
 
 	if (type === 0) { // straight text
 		const value = swapOne.size ? ast.value.replace(/1/g, `{${[...swapOne].join('|')}}`) : ast.value;
-		if (swapOne.size) {
-			console.log('swapping...');
-			console.log('was:', ast.value);
-			console.log('now:', value);
-		}
-		console.log(text);
 		text += value[trim]?.() ?? value;
 	}
 	else if (type === 1) { // simple arg
-		if (ast.value.startsWith('disgw')) {
-			console.log(ast);
-
-			console.log(args);
-		}
 		text += `{${normalizeArgName(ast.value, args)}}`;
 	}
 	else if ([2, 3, 4].includes(type)) { // number, date, time
@@ -278,10 +266,6 @@ function printAST(ast, options, level = 0) {
 		} else if (ast.options['=1'] && /(?<!(=|offset:|"type":\s?))1/.test(JSON.stringify(ast.options['=1'].value))) { // TODO: recursively check actual options
 			// `=1` exists with literal "1" text
 			ast.options.one = ast.options['=1'];
-			console.log('=1 with 1');
-			console.log(JSON.stringify(ast.options.one));
-			console.log('ADDING');
-			console.log(ast.value);
 			delete ast.options['=1'];
 			swapOne.add(ast.value);
 		}
@@ -328,12 +312,6 @@ function printAST(ast, options, level = 0) {
 		}).join('') + (useNewlines ? newline : '');
 
 		text += `{${normalizeArgName(ast.value, args)}, ${typeText},${offsetText}${optionsText}}`;
-
-		if (swapOne.size) {
-			console.log('OPT TEXT');
-			console.log(optionsText);
-			console.log(text);
-		}
 	}
 	else if (type === 7) { // #
 		text += '#';
