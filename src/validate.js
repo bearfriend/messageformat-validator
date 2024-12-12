@@ -104,7 +104,8 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 				msgReporter.error('parse', `Expected "," but "${e.originalMessage.substr(e.location.start.column, 1)}" found`, { column: e.location.start.column - 1 });
 			}
 			else {
-				msgReporter.error('parse', e.message, { column: e.location.start.column - 1 });
+				const near = `at or near: ${targetMessage.slice(e.location.start.offset, Math.max(e.location.end.offset, e.location.start.offset + 4))}`;
+				msgReporter.error('parse', `${e.message} ${near}`, { column: e.location.start.column - 1 });
 			}
 		}
 	}
