@@ -128,7 +128,7 @@ const noSource = () => {
 };
 
 const localesPaths = glob.sync(pathCombined);
-localesPaths.forEach(async (localesPath, idx) => {
+const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 
 	const absLocalesPath = `${process.cwd()}/${localesPath}`;
 
@@ -162,7 +162,7 @@ localesPaths.forEach(async (localesPath, idx) => {
 
 	if (program.format) {
 		if (!sourceLocale) noSource();
-		console.log(`Formatting:`, targetLocales.join(', '));
+		//console.log(`Formatting:`, targetLocales.join(', '));
 	}
 
 	const resources = await Promise.all(filteredFiles.map(file => readFile(absLocalesPath + file, 'utf8')))
@@ -215,18 +215,22 @@ localesPaths.forEach(async (localesPath, idx) => {
 	if (program.format) {
 		let count = 0;
 
+		console.log(chalk.underline(localesPath));
+		console.log(`Formatting:`, targetLocales.join(', '));
+
 		const sourceLocaleParsed = locales[sourceLocale].parsed;
-		Object.keys(locales).forEach(async locale => {
+
+		await Promise.all(Object.keys(locales).map(async locale => {
 			if (!allowedLocales || allowedLocales.includes(locale)) {
 
 				let localeContents = locales[locale].contents;
-				Object.values(locales[locale].parsed).forEach(t => {
+				await Promise.all(Object.values(locales[locale].parsed).map(async t => {
 
 					const source = sourceLocaleParsed[t.key];
 
 					if (localeContents.includes(t)) {
 						const baseTabs = t.match('^\n?(?<tabs>\t*)').groups.tabs
-						const newVal = formatMessage(t.val, {
+						const newVal = await formatMessage(t.val, {
 							locale,
 							sourceLocale,
 							add: commandOpts.add,
@@ -235,6 +239,7 @@ localesPaths.forEach(async (localesPath, idx) => {
 							dedupe: commandOpts.dedupe,
 							trim: commandOpts.trim,
 							collapse: commandOpts.collapse,
+							quotes: commandOpts.quotes,
 
 							baseTabs: baseTabs.length,
 							key: t.key,
@@ -249,11 +254,11 @@ localesPaths.forEach(async (localesPath, idx) => {
 						if (old !== noo) count += 1;
 						localeContents = localeContents.replace(old, noo);
 					}
-				});
+				}));
 
 				await writeFile(absLocalesPath + locales[locale].file, localeContents);
 			}
-		});
+		}));
 
 		const cliReport = `\n ${chalk.green('\u2714')} Formatted ${count} messages`;
 		console.log(cliReport);
@@ -297,10 +302,19 @@ localesPaths.forEach(async (localesPath, idx) => {
 	const translatorOutput = {};
 
 	await Promise.all(output.map(async(locale, idx) => {
-		const localePath = `${absLocalesPath}${locales[locale.locale].file}`;
+		const localeFile = `${locales[locale.locale].file}`;
 
 		if (!allowedLocales || allowedLocales.includes(locale.locale)) {
-			console.log((idx > 0 ? '\n' : '') + chalk.underline(localePath));
+
+			if (program.sort ||
+				program.removeExtraneous ||
+				program.addMissing ||
+				program.printMissing ||
+				locale.report.totals.errors ||
+				locale.report.totals.warnings) {
+				console.log((idx > 0 ? '\n' : '') + chalk.underline(`${localesPath}${localeFile}`));
+			}
+
 			if (programOpts.issues) {
 
 				locale.report.totals.ignored = { warnings: 0, errors: 0 };
@@ -372,7 +386,7 @@ localesPaths.forEach(async (localesPath, idx) => {
 				}
 
 				if (program.removeExtraneous || program.addMissing || program.sort) {
-					writeFile(localePath, locales[locale.locale].contents);
+					writeFile(localeFile, locales[locale.locale].contents);
 				}
 			}
 
@@ -401,8 +415,7 @@ localesPaths.forEach(async (localesPath, idx) => {
 				return;
 			}
 			else {
-				const cliReport = `\n ${chalk.green('\u2714')} Passed`;
-				console.log(cliReport);
+				// passed
 			}
 		}
 
@@ -413,35 +426,62 @@ localesPaths.forEach(async (localesPath, idx) => {
 	const totals = {
 		errors: 0,
 		warnings: 0,
-		ignored: 0
+		ignored: {
+			errors: 0,
+			warnings: 0
+		}
 	};
-	let error = false;
 
 	output.forEach(locale => {
 		if (locale.report) {
-			totals.errors += locale.report.totals.errors
-			totals.warnings += locale.report.totals.warnings
-			totals.ignored += locale.report.totals.ignored
-			if (locale.report.totals.errors - locale.report.totals.ignored.errors) {
-				error = true;
-			}
+			totals.errors += locale.report.totals.errors;
+			totals.warnings += locale.report.totals.warnings;
+			totals.ignored.errors += locale.report.totals.ignored.errors;
+			totals.ignored.warnings += locale.report.totals.ignored.warnings;
 		}
 	});
+
+	if (idx < localesPaths.length - 1) console.log(`\n\n`);
+
+	return totals;
+}));
+
+if (results.filter(r => r).length) {
+
+	const totals = {
+		errors: 0,
+		warnings: 0,
+		ignored: {
+			errors: 0,
+			warnings: 0
+		}
+	};
+
+	results.forEach(result => {
+		if (result) {
+			totals.errors += result.errors;
+			totals.warnings += result.warnings;
+			totals.ignored.errors += result.ignored.errors;
+			totals.ignored.warnings += result.ignored.warnings;
+		}
+	});
+
+	console.log(chalk.bold(`\n\nTotal ${chalk.grey(chalk.grey(` ${pathCombined} `))}`));
 
 	if (totals.errors || totals.warnings) {
 		const color = totals.errors ? 'red' : 'yellow';
 		const total = totals.errors + totals.warnings;
 		const ignored = totals.ignored.errors + totals.ignored.warnings;
 		const cliReport = chalk[color](`\u2716 ${total} issues (${totals.errors} errors, ${totals.warnings} warnings)${ignored ? chalk.grey(` - ${ignored} Ignored`) : ''}`);
-		console.log(`\n${chalk.bold('Totals')}`);
-		console.log(`\n${chalk.underline(localesPath)}`);
+		console.log(chalk.bold(cliReport));
+	} else {
+		const cliReport = `\n ${chalk.green('\u2714')} Passed`;
 		console.log(cliReport);
-		if (idx < localesPaths.length - 1) console.log(`\n${chalk.bold('---------------')}\n`);
-		return;
 	}
 
-	if (error) {
+	if (totals.errors - totals.ignored.errors) {
 		console.error('\nErrors were reported in at least one locale. See details above.');
-		return 1;
 	}
-});
+
+	process.exit(Number(Boolean(results.find(r => r === 1))));
+}
