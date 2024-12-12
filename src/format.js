@@ -16,7 +16,7 @@ function expandASTHashes(ast, parentValue) {
 	}
 }
 
-export function formatMessage(msg, options = {}) {
+export async function formatMessage(msg, options = {}) {
 	let ast;
 
 	try {
@@ -52,6 +52,11 @@ export function formatMessage(msg, options = {}) {
 		console.log(e);
 	}
 
+	const localeData = {
+		[options.locale]: await getLocaleData(options.locale),
+		[options.sourceLocale]: await getLocaleData(options.sourceLocale)
+	}
+
 	return printAST(ast, {
 		useNewlines: options.newlines ?? msg.match(structureRegEx)?.join('').includes('\n'),
 		add: options.add ?? false,
@@ -62,6 +67,7 @@ export function formatMessage(msg, options = {}) {
 
 		locale: options.locale,
 		sourceLocale: options.sourceLocale,
+		localeData,
 		args: options.source ? [...new Set(options.source.match(/(?<=[{<])[^,{}<>]+(?=[}>,])/g))] : []
 	}, options.baseTabs);
 }
@@ -89,10 +95,11 @@ function printAST(ast, options, level = 0) {
 		dedupe = false,
 		trim = false,
 		args = [],
+		localeData
 	} = options;
 
 	const localeLower = locale.toLowerCase();
-	const delimiters = getLocaleData(locale).delimiters;
+	const { delimiters } = localeData[locale];
 
 	if (Array.isArray(ast)) {
 		const swapOneClone = new Set(swapOne);
@@ -158,7 +165,7 @@ function printAST(ast, options, level = 0) {
 					altEnd: sourceAltEnd,
 					altStart: sourceAltStart
 				} = (locale => {
-					const delimiters = getLocaleData(locale).delimiters;
+					const { delimiters } = localeData[locale];
 
 					for (const k in delimiters) {
 						if (paddedQuoteLocales.includes(locale.toLowerCase())) {
