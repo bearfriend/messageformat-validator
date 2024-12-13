@@ -66,7 +66,7 @@ export async function formatMessage(msg, options = {}) {
 		locale: options.locale,
 		sourceLocale: options.sourceLocale,
 		localeData,
-		args: options.source ? [...new Set(options.source.match(/(?<=[{<])[^,{}<>]+(?=[}>,])/g))] : []
+		args: options.source ? [...new Set(options.source.match(/(?<=[{<]\s*)[^,{}<>\s]+(?=\s*[}>,])/g))] : []
 	}, options.baseTabs);
 }
 
