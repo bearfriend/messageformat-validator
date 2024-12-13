@@ -26,7 +26,7 @@ program
 	.option('--no-issues', 'Don\'t output issues')
 	.option('-i, --ignore <items>', 'Ignore these comma-separated issue types')
 	.option('-l, --locales <items>', 'Process only these comma-separated locales')
-	.option('-p, --path <path>', 'Path to a directory containing locale files')
+	.option('-p, --path <path>', 'Glob path to a directory containing locale files')
 	.option('-s, --source-locale <locale>', 'The locale to use as the source')
 	.option('--json-obj', 'Indicate that the files to be parsed are JSON files with keys that have objects for values')
 	.command('validate', { isDefault: true, hidden: true })
