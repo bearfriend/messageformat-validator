@@ -69,7 +69,7 @@ export async function formatMessage(msg, options = {}) {
 		locale: options.locale,
 		sourceLocale: options.sourceLocale,
 		localeData,
-		args: options.source ? [...new Set(options.source.match(/(?<=[{<]\s*)[^,{}<>\s]+(?=\s*[}>,])/g))] : []
+		args: options.source ? [...options.source.match(/(?<=[{<]\s*)[^,{}<>\s]+(?=\s*[}>,])/g)] : []
 	}, options.baseTabs);
 }
 
@@ -78,9 +78,15 @@ function normalizeArgName(argName, availableArgs) {
 		if (availableArgs.length === 1) {
 			return availableArgs[0];
 		} else {
-			return availableArgs.find(a => a.toLowerCase() === argName.toLowerCase()) ?? argName;
+			const caseMatch = availableArgs.find(a => a.toLowerCase() === argName.toLowerCase());
+			if (caseMatch) {
+				availableArgs.splice(availableArgs.indexOf(caseMatch), 1);
+				return caseMatch;
+			}
+			return availableArgs.join('|');
 		}
 	}
+	availableArgs.splice(availableArgs.indexOf(argName), 1);
 	return argName;
 }
 
@@ -263,7 +269,7 @@ function printAST(ast, options, level = 0, parentValue) {
 	}
 	else if (type === 5) { // select
 
-
+		const argName = normalizeArgName(ast.value, args);
 
 		const optionsText = Object.entries(ast.options)
 			.sort((a, b) => {
@@ -273,9 +279,10 @@ function printAST(ast, options, level = 0, parentValue) {
 				return `${newline}${useNewlines ? '\t' : ''}${opt} {${printAST(value, options, level + 1)}}`;
 			}).join('') + (useNewlines ? newline : '');
 
-		text += `{${normalizeArgName(ast.value, args)}, select,${optionsText}}`;
+		text += `{${argName}, select,${optionsText}}`;
 	}
 	else if (type === 6) { // plural, selectordinal
+		const argName = normalizeArgName(ast.value, args);
 		const supportedCats = getPluralCats(locale, ast.pluralType);
 		const unsupportedCats = [ ...Object.keys(ast.options).filter(o => !/^=\d+$/.test(o)) , ...sortedCats].filter(cat => !supportedCats.includes(cat));
 		if (add) {
@@ -339,7 +346,7 @@ function printAST(ast, options, level = 0, parentValue) {
 			return `${newline}${useNewlines ? '\t' : ''}${opt} {${printAST(value, { ...options, swapOne }, level + 1, ast.value)}}`;
 		}).join('') + (useNewlines ? newline : '');
 
-		text += `{${normalizeArgName(ast.value, args)}, ${typeText},${offsetText}${optionsText}}`;
+		text += `{${argName}, ${typeText},${offsetText}${optionsText}}`;
 	}
 	else if (type === 7) { // #
 		text += '#';
