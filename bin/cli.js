@@ -240,6 +240,7 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 							trim: commandOpts.trim,
 							collapse: commandOpts.collapse,
 							quotes: commandOpts.quotes,
+							expandHashes: true,
 
 							baseTabs: baseTabs.length,
 							key: t.key,
