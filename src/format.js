@@ -52,10 +52,8 @@ export async function formatMessage(msg, options = {}) {
 		console.log(e);
 	}
 
-	const localeData = {
-		[options.locale]: await getLocaleData(options.locale),
-		[options.sourceLocale]: await getLocaleData(options.sourceLocale)
-	}
+	const localeData = { [options.locale]: await getLocaleData(options.locale) };
+	if (options.sourceLocale) localeData[options.sourceLocale] = await getLocaleData(options.sourceLocale);
 
 	return printAST(ast, {
 		useNewlines: options.newlines ?? msg.match(structureRegEx)?.join('').includes('\n'),
@@ -83,7 +81,7 @@ function normalizeArgName(argName, availableArgs) {
 	return argName;
 }
 
-function printAST(ast, options, level = 0) {
+function printAST(ast, options, level = 0, parentValue) {
 	const {
 		locale,
 		sourceLocale,
@@ -95,12 +93,13 @@ function printAST(ast, options, level = 0) {
 		dedupe = false,
 		trim = false,
 		args = [],
-		localeData
+		localeData,
+		isFirst = true,
+		isLast = true
 	} = options;
 
 	const localeLower = locale.toLowerCase();
-	const { delimiters } = localeData[locale];
-
+	//console.log(ast);
 	if (Array.isArray(ast)) {
 		const swapOneClone = new Set(swapOne);
 		ast.forEach(a => a.type === 1 && swapOneClone.delete(a.value))
@@ -118,10 +117,18 @@ function printAST(ast, options, level = 0) {
 						trim = 'trimEnd';
 					}
 				}
-				return printAST(ast, { ...options, swapOne: swapOneClone, trim }, level);
+				return printAST(ast, { ...options,
+					isFirst: !idx,
+					isLast: idx === arr.length - 1,
+					swapOne: swapOneClone,
+					trim
+				},
+				level);
 			}).join('');
 
 		if (quotes) {
+			const { delimiters } = localeData[locale];
+
 			for (const k in delimiters) {
 				if (paddedQuoteLocales.includes(localeLower)) {
 					if (k.endsWith('Start')) {
@@ -148,6 +155,7 @@ function printAST(ast, options, level = 0) {
 			//}
 
 			if (quotes === 'straight' || quotes === 'both') {
+				//console.log(msg);
 				msg = msg
 					.replace(/''/g, '|_single_|').replace(/'/g, '|_escape_|').replace(/\|_single_\|/g, "'")
 					.replace(/(?<=\s)\\?'|^\\?'/g, altStart) // opening '
@@ -156,6 +164,7 @@ function printAST(ast, options, level = 0) {
 					.replace(/(?<=\s(\u0648)?)\\?"|^\\?"/g, quoteStart) // opening "
 					.replace(/\\?"/g, quoteEnd) // closing "
 					.replace(/\|_escape_\|/g, "'");
+				//console.log(msg);
 			}
 
 			if (quotes === 'source' || quotes === 'both') {
@@ -221,8 +230,24 @@ function printAST(ast, options, level = 0) {
 	const type = ast.type;
 
 	if (type === 0) { // straight text
-		const value = swapOne.size ? ast.value.replace(/1/g, `{${[...swapOne].join('|')}}`) : ast.value;
-		text += value[trim]?.() ?? value;
+		let escaped = ast.value;
+		//console.log(escaped);
+		// If this literal starts with a ' and its not the 1st node, this means the node before it is non-literal
+		// and the `'` needs to be unescaped
+		if (!isFirst && escaped[0] === "'") {
+			escaped = "''".concat(escaped.slice(1));
+		}
+		// Same logic but for last el
+		if (!isLast && escaped[escaped.length - 1] === "'") {
+			escaped = "".concat(escaped.slice(0, escaped.length - 1), "''");
+		}
+		//console.log(escaped);
+		escaped = escaped.replace(/([{}](?:.*[{}])?)/su, "'$1'");
+		//console.log(escaped);
+		escaped = parentValue ? escaped.replace('#', "'#'") : escaped;
+
+		escaped = swapOne.size ? escaped.replace(/1/g, `{${[...swapOne].join('|')}}`) : escaped;
+		text += escaped[trim]?.() ?? escaped;
 	}
 	else if (type === 1) { // simple arg
 		text += `{${normalizeArgName(ast.value, args)}}`;
@@ -315,7 +340,7 @@ function printAST(ast, options, level = 0) {
 			}
 			return sortedCats.indexOf(a[0]) > sortedCats.indexOf(b[0]) ? 1 : -1;
 		}).map(([opt, { value }]) => {
-			return `${newline}${useNewlines ? '\t' : ''}${opt} {${printAST(value, { ...options, swapOne }, level + 1)}}`;
+			return `${newline}${useNewlines ? '\t' : ''}${opt} {${printAST(value, { ...options, swapOne }, level + 1, ast.value)}}`;
 		}).join('') + (useNewlines ? newline : '');
 
 		text += `{${normalizeArgName(ast.value, args)}, ${typeText},${offsetText}${optionsText}}`;
