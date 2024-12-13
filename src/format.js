@@ -99,7 +99,7 @@ function printAST(ast, options, level = 0, parentValue) {
 	} = options;
 
 	const localeLower = locale.toLowerCase();
-	//console.log(ast);
+
 	if (Array.isArray(ast)) {
 		const swapOneClone = new Set(swapOne);
 		ast.forEach(a => a.type === 1 && swapOneClone.delete(a.value))
@@ -155,16 +155,13 @@ function printAST(ast, options, level = 0, parentValue) {
 			//}
 
 			if (quotes === 'straight' || quotes === 'both') {
-				//console.log(msg);
 				msg = msg
 					.replace(/''/g, '|_single_|').replace(/'/g, '|_escape_|').replace(/\|_single_\|/g, "'")
 					.replace(/(?<=\s)\\?'|^\\?'/g, altStart) // opening '
 					.replace(/(?<=\S)'(?=\S)/g, '’') // apostrophe
 					.replace(/\\?'/g, altEnd) // closing '
 					.replace(/(?<=\s(\u0648)?)\\?"|^\\?"/g, quoteStart) // opening "
-					.replace(/\\?"/g, quoteEnd) // closing "
-					.replace(/\|_escape_\|/g, "'");
-				//console.log(msg);
+					.replace(/\\?"/g, quoteEnd); // closing "
 			}
 
 			if (quotes === 'source' || quotes === 'both') {
@@ -213,7 +210,6 @@ function printAST(ast, options, level = 0, parentValue) {
 					.replace(new RegExp(`(?<=\\s(\\u0648)?)\\\\?${sourceQuoteStart}|^\\\\?${sourceQuoteStart}`, 'g'), '|_quoteStart_|') // opening quote
 					.replace(new RegExp(`\\\\?${sourceQuoteEnd}`, 'g'), '|_quoteEnd_|') // closing quote
 					.replace(/\|_apostrophe_\|/g, "’")
-					.replace(/\|_escape_\|/g, "'")
 					.replace(/\|_quoteStart_\|/g, quoteStart)
 					.replace(/\|_quoteEnd_\|/g, quoteEnd)
 					.replace(/\|_altStart_\|/g, altStart)
@@ -221,7 +217,7 @@ function printAST(ast, options, level = 0, parentValue) {
 				/* eslint-enable no-useless-escape */
 			}
 		}
-		return msg;
+		return msg.replace(/\|_escape_\|/g, "'");
 	}
 
 	let text = '';
@@ -231,7 +227,6 @@ function printAST(ast, options, level = 0, parentValue) {
 
 	if (type === 0) { // straight text
 		let escaped = ast.value;
-		//console.log(escaped);
 		// If this literal starts with a ' and its not the 1st node, this means the node before it is non-literal
 		// and the `'` needs to be unescaped
 		if (!isFirst && escaped[0] === "'") {
@@ -241,10 +236,8 @@ function printAST(ast, options, level = 0, parentValue) {
 		if (!isLast && escaped[escaped.length - 1] === "'") {
 			escaped = "".concat(escaped.slice(0, escaped.length - 1), "''");
 		}
-		//console.log(escaped);
-		escaped = escaped.replace(/([{}](?:.*[{}])?)/su, "'$1'");
-		//console.log(escaped);
-		escaped = parentValue ? escaped.replace('#', "'#'") : escaped;
+		escaped = escaped.replace(/'([{}](?:.*[{}])?)'/gsu, "|_escape_|$1|_escape_|");
+		escaped = parentValue ? escaped.replace("'#'", "|_escape_|#|_escape_|") : escaped;
 
 		escaped = swapOne.size ? escaped.replace(/1/g, `{${[...swapOne].join('|')}}`) : escaped;
 		text += escaped[trim]?.() ?? escaped;
