@@ -16,15 +16,18 @@ function expandASTHashes(ast, parentValue) {
 	}
 }
 
+function escape(msg) {
+	return msg.replace(/'([{}](?:.*[{}])?)'/gsu, "'''$1'''");
+}
+
 export async function formatMessage(msg, options = {}) {
 	let ast;
 
 	try {
-		msg = options.quotes === 'straight' ? msg.replace(/'/g, "'''") : msg;
+		msg = options.quotes === 'straight' ? msg.replace(/'/g, "'''") : escape(msg);
 		ast = parse(msg, { requiresOtherClause: false });
 	} catch(err) {
 		try {
-			msg = options.quotes === 'straight' ? msg.replace(/'/g, "'''") : msg;
 			const alteredMsg = msg.replace('\'{', '’{');
 			ast = parse(alteredMsg, { requiresOtherClause: false });
 			msg = alteredMsg;
