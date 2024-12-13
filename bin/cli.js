@@ -86,6 +86,7 @@ program
 	.option('-r, --remove', 'Remove cases for unsupported pural and selectordinal categories')
 	.option('-d, --dedupe', 'Remove complex argument cases that duplicate the `other` case. Takes precedence over --add.')
 	.option('-t, --trim', 'Trim whitespace from both ends of messages')
+	.option('-c, --correct', 'Attempt to correct argument names. A source locale must be provided.')
 	.addOption(new Option('-q, --quotes <type>', 'Replace quote characters with locale-appropriate characters').choices(['source', 'straight', 'both']))
 	.action(async function() {
 		formatMessage = (await import('../src/format.js')).formatMessage;
@@ -226,7 +227,7 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 				let localeContents = locales[locale].contents;
 				await Promise.all(Object.values(locales[locale].parsed).map(async t => {
 
-					const source = sourceLocaleParsed[t.key];
+					const source = commandOpts.correct ? sourceLocaleParsed[t.key] : null;
 
 					if (localeContents.includes(t)) {
 						const baseTabs = t.match('^\n?(?<tabs>\t*)').groups.tabs

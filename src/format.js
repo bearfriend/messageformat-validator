@@ -74,7 +74,7 @@ export async function formatMessage(msg, options = {}) {
 }
 
 function normalizeArgName(argName, availableArgs) {
-	if (!availableArgs.includes(argName)) {
+	if (availableArgs.length && !availableArgs.includes(argName)) {
 		if (availableArgs.length === 1) {
 			return availableArgs[0];
 		} else {
