@@ -17,7 +17,7 @@ function expandASTHashes(ast, parentValue) {
 }
 
 function escape(msg) {
-	return msg.replace(/'([{}](?:.*[{}])?)'/gsu, "'''$1'''");
+	return msg.replace(/'([{}](?:.*?[{}])?)'/gsu, "'''$1'''");
 }
 
 export async function formatMessage(msg, options = {}) {
