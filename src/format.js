@@ -2,6 +2,15 @@ import { hoistSelectors } from '@formatjs/icu-messageformat-parser/manipulator.j
 import { parse } from '@formatjs/icu-messageformat-parser';
 import { getLocaleData, getPluralCats, paddedQuoteLocales, sortedCats, structureRegEx } from './utils.js';
 
+function getArgs(asts, types = [1,2,3,4,5,6,8], args = []) {
+	asts.forEach(ast => {
+		if (types.includes(ast.type)) args.push([ast.value, ast.type]);
+		if (ast.options) Object.values(ast.options).map(({ value: asts }) => getArgs(asts, types, args));
+		if (ast.children) args.concat(getArgs(ast.children, types, args));
+	})
+	return args;
+}
+
 function expandASTHashes(ast, parentValue) {
 	if (Array.isArray(ast)) {
 		ast.map(ast => expandASTHashes(ast, parentValue));
@@ -19,6 +28,8 @@ function expandASTHashes(ast, parentValue) {
 function escape(msg) {
 	return msg.replace(/'([{}](?:.*?[{}])?)'/gsu, "'''$1'''");
 }
+
+const argRegEx = /(?<=(?<!(?<!')'(?=[{<]([^,{}<>\s]+[}>])?'(?!')))[{<]\s*)[^,{}<>\s/][^,{}<>\s]*(?=\s*[}>,])/g
 
 export async function formatMessage(msg, options = {}) {
 	let ast;
@@ -69,7 +80,7 @@ export async function formatMessage(msg, options = {}) {
 		locale: options.locale,
 		sourceLocale: options.sourceLocale,
 		localeData,
-		args: options.source ? [...options.source.match(/(?<=[{<]\s*)[^,{}<>\s]+(?=\s*[}>,])/g)] : []
+		args: options.source ? options.source.match(argRegEx) : []
 	}, options.baseTabs);
 }
 
@@ -83,7 +94,7 @@ function normalizeArgName(argName, availableArgs) {
 				availableArgs.splice(availableArgs.indexOf(caseMatch), 1);
 				return caseMatch;
 			}
-			return availableArgs.join('|');
+			return [...new Set(availableArgs)].join('|');
 		}
 	}
 	availableArgs.splice(availableArgs.indexOf(argName), 1);
@@ -270,19 +281,18 @@ function printAST(ast, options, level = 0, parentValue) {
 	else if (type === 5) { // select
 
 		const argName = normalizeArgName(ast.value, args);
-
+		const availableArgs = [...args].splice(args.indexOf(argName), 1);
 		const optionsText = Object.entries(ast.options)
 			.sort((a, b) => {
 				return a[0] === 'other' ? 1 : (b[0] === 'other' ? -1 : 0);
 			})
 			.map(([opt, { value }]) => {
-				return `${newline}${useNewlines ? '\t' : ''}${opt} {${printAST(value, options, level + 1)}}`;
+				return `${newline}${useNewlines ? '\t' : ''}${opt} {${printAST(value, { ...options, args: availableArgs }, level + 1)}}`;
 			}).join('') + (useNewlines ? newline : '');
 
 		text += `{${argName}, select,${optionsText}}`;
 	}
 	else if (type === 6) { // plural, selectordinal
-		const argName = normalizeArgName(ast.value, args);
 		const supportedCats = getPluralCats(locale, ast.pluralType);
 		const unsupportedCats = [ ...Object.keys(ast.options).filter(o => !/^=\d+$/.test(o)) , ...sortedCats].filter(cat => !supportedCats.includes(cat));
 		if (add) {
@@ -335,6 +345,9 @@ function printAST(ast, options, level = 0, parentValue) {
 			}
 		});
 
+		const argName = normalizeArgName(ast.value, args);
+		args.splice(args.indexOf(argName), 1)
+
 		const typeText = ast.pluralType === 'ordinal' ? 'selectordinal' : 'plural';
 		const offsetText = + ast.offset !== 0 ? ` offset:${ast.offset}` : '';
 		const optionsText = Object.entries(ast.options).sort((a, b) => {
@@ -343,7 +356,7 @@ function printAST(ast, options, level = 0, parentValue) {
 			}
 			return sortedCats.indexOf(a[0]) > sortedCats.indexOf(b[0]) ? 1 : -1;
 		}).map(([opt, { value }]) => {
-			return `${newline}${useNewlines ? '\t' : ''}${opt} {${printAST(value, { ...options, swapOne }, level + 1, ast.value)}}`;
+			return `${newline}${useNewlines ? '\t' : ''}${opt} {${printAST(value, { ...options, swapOne, args: [...args] }, level + 1, ast.value)}}`;
 		}).join('') + (useNewlines ? newline : '');
 
 		text += `{${argName}, ${typeText},${offsetText}${optionsText}}`;
@@ -352,6 +365,7 @@ function printAST(ast, options, level = 0, parentValue) {
 		text += '#';
 	}
 	else if (type === 8) { // tag
+		console.log(ast.value, args);
 		text += `<${normalizeArgName(ast.value, args)}>${printAST(ast.children, options, level + 1)}</${normalizeArgName(ast.value, args)}>`;
 	}
 	else { // unhandled
