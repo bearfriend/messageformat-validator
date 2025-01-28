@@ -2,6 +2,15 @@ import { hoistSelectors } from '@formatjs/icu-messageformat-parser/manipulator.j
 import { parse } from '@formatjs/icu-messageformat-parser';
 import { getLocaleData, getPluralCats, paddedQuoteLocales, sortedCats, structureRegEx } from './utils.js';
 
+function getArgs(asts, types = [1,2,3,4,5,6,8], args = []) {
+	asts.forEach(ast => {
+		if (types.includes(ast.type)) args.push([ast.value, ast.type]);
+		if (ast.options) Object.values(ast.options).map(({ value: asts }) => getArgs(asts, types, args));
+		if (ast.children) args.concat(getArgs(ast.children, types, args));
+	})
+	return args;
+}
+
 function expandASTHashes(ast, parentValue) {
 	if (Array.isArray(ast)) {
 		ast.map(ast => expandASTHashes(ast, parentValue));
@@ -58,6 +67,15 @@ export async function formatMessage(msg, options = {}) {
 	const localeData = { [options.locale]: await getLocaleData(options.locale) };
 	if (options.sourceLocale) localeData[options.sourceLocale] = await getLocaleData(options.sourceLocale);
 
+	let args = [];
+	if (options.source) {
+		try {
+			args = getArgs(parse(options.source, { requiresOtherClause: false }));
+		} catch(e) {
+			console.warn('WARN Source error:', options.key);
+		}
+	}
+
 	return printAST(ast, {
 		useNewlines: options.newlines ?? msg.match(structureRegEx)?.join('').includes('\n'),
 		add: options.add ?? false,
@@ -69,25 +87,31 @@ export async function formatMessage(msg, options = {}) {
 		locale: options.locale,
 		sourceLocale: options.sourceLocale,
 		localeData,
-		args: options.source ? [...options.source.match(/(?<=[{<]\s*)[^,{}<>\s]+(?=\s*[}>,])/g)] : []
+		args
 	}, options.baseTabs);
 }
 
-function normalizeArgName(argName, availableArgs) {
-	if (availableArgs.length && !availableArgs.includes(argName)) {
-		if (availableArgs.length === 1) {
-			return availableArgs[0];
+function normalizeArgName(name, type, availableArgs) {
+	if (availableArgs.length) {
+		const idx = availableArgs.findIndex(([n, t]) => n === name && t === type);
+		if (idx > -1) {
+			availableArgs.splice(idx, 1);
+			return name;
+		}
+		else if (availableArgs.length === 1) {
+			return availableArgs.pop()[0];
 		} else {
-			const caseMatch = availableArgs.find(a => a.toLowerCase() === argName.toLowerCase());
-			if (caseMatch) {
-				availableArgs.splice(availableArgs.indexOf(caseMatch), 1);
+			const idx = availableArgs.findIndex(([n, t]) => t === type && n.toLowerCase() === name.toLowerCase());
+			if (idx > -1) {
+				const caseMatch = availableArgs.splice(idx, 1)[0];
 				return caseMatch;
 			}
-			return availableArgs.join('|');
+			return [...new Set(availableArgs
+				.reduce((acc, [n, t]) => t === type && acc.push(n) && acc || acc, [])
+			)].join('|');
 		}
 	}
-	availableArgs.splice(availableArgs.indexOf(argName), 1);
-	return argName;
+	return name;
 }
 
 function printAST(ast, options, level = 0, parentValue) {
@@ -252,7 +276,7 @@ function printAST(ast, options, level = 0, parentValue) {
 		text += escaped[trim]?.() ?? escaped;
 	}
 	else if (type === 1) { // simple arg
-		text += `{${normalizeArgName(ast.value, args)}}`;
+		text += `{${normalizeArgName(ast.value, type, args)}}`;
 	}
 	else if ([2, 3, 4].includes(type)) { // number, date, time
 		const style = (() => {
@@ -265,24 +289,22 @@ function printAST(ast, options, level = 0, parentValue) {
 		})();
 
 		const typesText = ['number', 'date', 'time'];
-		text += `{${normalizeArgName(ast.value, args)}, ${typesText[type - 2]}${style}}`;
+		text += `{${normalizeArgName(ast.value, type, args)}, ${typesText[type - 2]}${style}}`;
 	}
 	else if (type === 5) { // select
 
-		const argName = normalizeArgName(ast.value, args);
-
+		const argName = normalizeArgName(ast.value, type, args);
 		const optionsText = Object.entries(ast.options)
 			.sort((a, b) => {
 				return a[0] === 'other' ? 1 : (b[0] === 'other' ? -1 : 0);
 			})
 			.map(([opt, { value }]) => {
-				return `${newline}${useNewlines ? '\t' : ''}${opt} {${printAST(value, options, level + 1)}}`;
+				return `${newline}${useNewlines ? '\t' : ''}${opt} {${printAST(value, { ...options, args }, level + 1)}}`;
 			}).join('') + (useNewlines ? newline : '');
 
 		text += `{${argName}, select,${optionsText}}`;
 	}
 	else if (type === 6) { // plural, selectordinal
-		const argName = normalizeArgName(ast.value, args);
 		const supportedCats = getPluralCats(locale, ast.pluralType);
 		const unsupportedCats = [ ...Object.keys(ast.options).filter(o => !/^=\d+$/.test(o)) , ...sortedCats].filter(cat => !supportedCats.includes(cat));
 		if (add) {
@@ -335,6 +357,8 @@ function printAST(ast, options, level = 0, parentValue) {
 			}
 		});
 
+		const argName = normalizeArgName(ast.value, type, args);
+
 		const typeText = ast.pluralType === 'ordinal' ? 'selectordinal' : 'plural';
 		const offsetText = + ast.offset !== 0 ? ` offset:${ast.offset}` : '';
 		const optionsText = Object.entries(ast.options).sort((a, b) => {
@@ -343,7 +367,7 @@ function printAST(ast, options, level = 0, parentValue) {
 			}
 			return sortedCats.indexOf(a[0]) > sortedCats.indexOf(b[0]) ? 1 : -1;
 		}).map(([opt, { value }]) => {
-			return `${newline}${useNewlines ? '\t' : ''}${opt} {${printAST(value, { ...options, swapOne }, level + 1, ast.value)}}`;
+			return `${newline}${useNewlines ? '\t' : ''}${opt} {${printAST(value, { ...options, swapOne, args: [...args] }, level + 1, ast.value)}}`;
 		}).join('') + (useNewlines ? newline : '');
 
 		text += `{${argName}, ${typeText},${offsetText}${optionsText}}`;
@@ -352,7 +376,7 @@ function printAST(ast, options, level = 0, parentValue) {
 		text += '#';
 	}
 	else if (type === 8) { // tag
-		text += `<${normalizeArgName(ast.value, args)}>${printAST(ast.children, options, level + 1)}</${normalizeArgName(ast.value, args)}>`;
+		text += `<${normalizeArgName(ast.value, type, args)}>${printAST(ast.children, options, level + 1)}</${normalizeArgName(ast.value, type, args)}>`;
 	}
 	else { // unhandled
 		console.warn('unhandled type:', type);
