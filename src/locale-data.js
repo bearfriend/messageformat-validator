@@ -1,2 +1,2 @@
-import cldrData from './locale-data-default.js';
-export default cldrData;
+import localeData from './locale-data-default.js';
+export default localeData;
