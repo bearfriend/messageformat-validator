@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { formatMessage } from '../src/format.js';
 
-describe('await formatMessage', () => {
+describe('formatMessage', () => {
 
 	let locale;
 	beforeEach(() => {
@@ -15,6 +15,7 @@ describe('await formatMessage', () => {
 		{ locale: 'en', expected: `This isn’t “correct”` },
 		{ locale: 'en-gb', expected: `This isn’t ‘correct’` },
 		{ locale: 'fr', expected: `This isn’t «\u202fcorrect\u202f»` },
+		{ locale: 'haw', expected: `This isn't “correct”` },
 		{ locale: 'sv', expected: `This isn’t ”correct”` },
 	].forEach(({ locale, expected }) => {
 		it(`should replace straight quotes with "${locale}" quotes when "quotes" option is "straight"`, async() => {
