@@ -177,7 +177,7 @@ function printAST(ast, options, level = 0, parentValue) {
 				quoteEnd = delimiters.quotationEnd,
 				altStart = delimiters.alternateQuotationStart,
 				altEnd = delimiters.alternateQuotationEnd,
-				apostrophe = delimiters.apostrophe;
+				apostrophe = delimiters.apostrophe ?? '’';
 
 			//if (1) { // todo: fromSource
 			if (localeLower.endsWith('-gb')) {
@@ -223,7 +223,7 @@ function printAST(ast, options, level = 0, parentValue) {
 						quoteEnd = delimiters.quotationEnd,
 						altStart = delimiters.alternateQuotationStart,
 						altEnd = delimiters.alternateQuotationEnd,
-						apostrophe = delimiters.apostrophe;
+						apostrophe = delimiters.apostrophe ?? '’';
 
 					//if (1) { // todo: fromSource
 					if (locale.toLowerCase().endsWith('-gb')) {
