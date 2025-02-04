@@ -243,13 +243,13 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 							quotes: commandOpts.quotes,
 							expandHashes: true,
 
-							baseTabs: baseTabs.length,
+							baseTabs: baseTabs.length + (commandOpts.newlines ? 1 : 0),
 							key: t.key,
 							source,
 							target: t
 						});
 						const valQuote = commandOpts.newlines && newVal.includes('\n') ? '`' : t.valQuote;
-						const valSpace = commandOpts.newlines && newVal.includes('\n') ? `\n${baseTabs}` : t.valSpace;
+						const valSpace = commandOpts.newlines && newVal.includes('\n') ? `\n\t${baseTabs}` : t.valSpace;
 						const old = `${t.keyQuote}${t.key}${t.keyQuote}${t.keySpace}:${t.valSpace}${t.valQuote}${t.val}${t.valQuote}${t.comma}${t.comment}`;
 						const noo = `${t.keyQuote}${t.key}${t.keyQuote}${t.keySpace}:${valSpace}${valQuote}${newVal}${valQuote}${t.comma}${t.comment}`;
 
