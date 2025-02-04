@@ -9,11 +9,24 @@ const defaultLocaleMap = { 'fr-on': 'fr-ca' };
 const SAVE_PATH = posix.join(dirname(import.meta.url), 'src/locale-data.js').replace(/file:(\/c:)?/i, '');
 
 function getDelimiters(locale) {
+	let delimiters;
+	const lang = locale.split('-')[0];
 	try {
-		return cldr.extractDelimiters(locale);
+		delimiters = cldr.extractDelimiters(locale);
 	} catch(err) {
-		return cldr.extractDelimiters(locale.split('-')[0]);
+		delimiters = cldr.extractDelimiters(lang);
 	}
+
+	switch (lang) {
+	case 'haw':
+		delimiters.apostrophe = "'";
+		break;
+	default:
+		delimiters.apostrophe = '’';
+		break;
+	}
+
+	return delimiters
 }
 
 let cldr;

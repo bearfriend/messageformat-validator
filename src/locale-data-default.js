@@ -4,7 +4,8 @@ export default {
 			"quotationStart": "”",
 			"quotationEnd": "“",
 			"alternateQuotationStart": "’",
-			"alternateQuotationEnd": "‘"
+			"alternateQuotationEnd": "‘",
+			"apostrophe": "’"
 		}
 	},
 	"cy": {
@@ -12,7 +13,8 @@ export default {
 			"quotationStart": "“",
 			"quotationEnd": "”",
 			"alternateQuotationStart": "‘",
-			"alternateQuotationEnd": "’"
+			"alternateQuotationEnd": "’",
+			"apostrophe": "’"
 		}
 	},
 	"da": {
@@ -20,7 +22,8 @@ export default {
 			"quotationStart": "“",
 			"quotationEnd": "”",
 			"alternateQuotationStart": "‘",
-			"alternateQuotationEnd": "’"
+			"alternateQuotationEnd": "’",
+			"apostrophe": "’"
 		}
 	},
 	"de": {
@@ -28,7 +31,8 @@ export default {
 			"quotationStart": "„",
 			"quotationEnd": "“",
 			"alternateQuotationStart": "‚",
-			"alternateQuotationEnd": "‘"
+			"alternateQuotationEnd": "‘",
+			"apostrophe": "’"
 		}
 	},
 	"en-gb": {
@@ -36,7 +40,8 @@ export default {
 			"quotationStart": "“",
 			"quotationEnd": "”",
 			"alternateQuotationStart": "‘",
-			"alternateQuotationEnd": "’"
+			"alternateQuotationEnd": "’",
+			"apostrophe": "’"
 		}
 	},
 	"en": {
@@ -44,7 +49,8 @@ export default {
 			"quotationStart": "“",
 			"quotationEnd": "”",
 			"alternateQuotationStart": "‘",
-			"alternateQuotationEnd": "’"
+			"alternateQuotationEnd": "’",
+			"apostrophe": "’"
 		}
 	},
 	"es-es": {
@@ -52,7 +58,8 @@ export default {
 			"quotationStart": "“",
 			"quotationEnd": "”",
 			"alternateQuotationStart": "‘",
-			"alternateQuotationEnd": "’"
+			"alternateQuotationEnd": "’",
+			"apostrophe": "’"
 		}
 	},
 	"es": {
@@ -60,7 +67,8 @@ export default {
 			"quotationStart": "“",
 			"quotationEnd": "”",
 			"alternateQuotationStart": "‘",
-			"alternateQuotationEnd": "’"
+			"alternateQuotationEnd": "’",
+			"apostrophe": "’"
 		}
 	},
 	"fr-ca": {
@@ -68,7 +76,8 @@ export default {
 			"quotationStart": "«",
 			"quotationEnd": "»",
 			"alternateQuotationStart": "«",
-			"alternateQuotationEnd": "»"
+			"alternateQuotationEnd": "»",
+			"apostrophe": "’"
 		}
 	},
 	"fr": {
@@ -76,7 +85,17 @@ export default {
 			"quotationStart": "«",
 			"quotationEnd": "»",
 			"alternateQuotationStart": "«",
-			"alternateQuotationEnd": "»"
+			"alternateQuotationEnd": "»",
+			"apostrophe": "’"
+		}
+	},
+	"haw": {
+		"delimiters": {
+			"quotationStart": "“",
+			"quotationEnd": "”",
+			"alternateQuotationStart": "‘",
+			"alternateQuotationEnd": "’",
+			"apostrophe": "'"
 		}
 	},
 	"hi": {
@@ -84,7 +103,8 @@ export default {
 			"quotationStart": "“",
 			"quotationEnd": "”",
 			"alternateQuotationStart": "‘",
-			"alternateQuotationEnd": "’"
+			"alternateQuotationEnd": "’",
+			"apostrophe": "’"
 		}
 	},
 	"ja": {
@@ -92,7 +112,8 @@ export default {
 			"quotationStart": "「",
 			"quotationEnd": "」",
 			"alternateQuotationStart": "『",
-			"alternateQuotationEnd": "』"
+			"alternateQuotationEnd": "』",
+			"apostrophe": "’"
 		}
 	},
 	"ko": {
@@ -100,7 +121,8 @@ export default {
 			"quotationStart": "“",
 			"quotationEnd": "”",
 			"alternateQuotationStart": "‘",
-			"alternateQuotationEnd": "’"
+			"alternateQuotationEnd": "’",
+			"apostrophe": "’"
 		}
 	},
 	"mi": {
@@ -108,7 +130,8 @@ export default {
 			"quotationStart": "\"",
 			"quotationEnd": "\"",
 			"alternateQuotationStart": "\"",
-			"alternateQuotationEnd": "\""
+			"alternateQuotationEnd": "\"",
+			"apostrophe": "’"
 		}
 	},
 	"nl": {
@@ -116,7 +139,8 @@ export default {
 			"quotationStart": "‘",
 			"quotationEnd": "’",
 			"alternateQuotationStart": "‘",
-			"alternateQuotationEnd": "’"
+			"alternateQuotationEnd": "’",
+			"apostrophe": "’"
 		}
 	},
 	"pt": {
@@ -124,7 +148,8 @@ export default {
 			"quotationStart": "“",
 			"quotationEnd": "”",
 			"alternateQuotationStart": "‘",
-			"alternateQuotationEnd": "’"
+			"alternateQuotationEnd": "’",
+			"apostrophe": "’"
 		}
 	},
 	"sv": {
@@ -132,7 +157,8 @@ export default {
 			"quotationStart": "”",
 			"alternateQuotationStart": "’",
 			"quotationEnd": "”",
-			"alternateQuotationEnd": "’"
+			"alternateQuotationEnd": "’",
+			"apostrophe": "’"
 		}
 	},
 	"tr": {
@@ -140,7 +166,8 @@ export default {
 			"quotationStart": "“",
 			"quotationEnd": "”",
 			"alternateQuotationStart": "‘",
-			"alternateQuotationEnd": "’"
+			"alternateQuotationEnd": "’",
+			"apostrophe": "’"
 		}
 	},
 	"zh-cn": {
@@ -148,7 +175,8 @@ export default {
 			"quotationStart": "“",
 			"quotationEnd": "”",
 			"alternateQuotationStart": "‘",
-			"alternateQuotationEnd": "’"
+			"alternateQuotationEnd": "’",
+			"apostrophe": "’"
 		}
 	},
 	"zh-tw": {
@@ -156,7 +184,8 @@ export default {
 			"quotationStart": "“",
 			"quotationEnd": "”",
 			"alternateQuotationStart": "‘",
-			"alternateQuotationEnd": "’"
+			"alternateQuotationEnd": "’",
+			"apostrophe": "’"
 		}
 	}
 }

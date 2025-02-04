@@ -176,7 +176,8 @@ function printAST(ast, options, level = 0, parentValue) {
 				quoteStart = delimiters.quotationStart,
 				quoteEnd = delimiters.quotationEnd,
 				altStart = delimiters.alternateQuotationStart,
-				altEnd = delimiters.alternateQuotationEnd;
+				altEnd = delimiters.alternateQuotationEnd,
+				apostrophe = delimiters.apostrophe;
 
 			//if (1) { // todo: fromSource
 			if (localeLower.endsWith('-gb')) {
@@ -191,7 +192,7 @@ function printAST(ast, options, level = 0, parentValue) {
 				msg = msg
 					.replace(/''/g, '|_single_|').replace(/'/g, '|_escape_|').replace(/\|_single_\|/g, "'")
 					.replace(/(?<=\s)\\?'|^\\?'/g, altStart) // opening '
-					.replace(/(?<=\S)'(?=\S)/g, '’') // apostrophe
+					.replace(/(?<=\S)'(?=\S)/g, apostrophe) // apostrophe
 					.replace(/\\?'/g, altEnd) // closing '
 					.replace(/(?<=\s(\u0648)?)\\?"|^\\?"/g, quoteStart) // opening "
 					.replace(/\\?"/g, quoteEnd); // closing "
@@ -202,7 +203,8 @@ function printAST(ast, options, level = 0, parentValue) {
 					quoteEnd: sourceQuoteEnd,
 					quoteStart: sourceQuoteStart,
 					altEnd: sourceAltEnd,
-					altStart: sourceAltStart
+					altStart: sourceAltStart,
+					apostrophe: sourceApostrophe
 				} = (locale => {
 					const { delimiters } = localeData[locale];
 
@@ -220,7 +222,8 @@ function printAST(ast, options, level = 0, parentValue) {
 						quoteStart = delimiters.quotationStart,
 						quoteEnd = delimiters.quotationEnd,
 						altStart = delimiters.alternateQuotationStart,
-						altEnd = delimiters.alternateQuotationEnd;
+						altEnd = delimiters.alternateQuotationEnd,
+						apostrophe = delimiters.apostrophe;
 
 					//if (1) { // todo: fromSource
 					if (locale.toLowerCase().endsWith('-gb')) {
@@ -230,7 +233,7 @@ function printAST(ast, options, level = 0, parentValue) {
 						altEnd = delimiters.quotationEnd;
 					}
 
-					return { quoteStart, quoteEnd, altStart, altEnd };
+					return { quoteStart, quoteEnd, altStart, altEnd, apostrophe };
 
 				})(sourceLocale);
 
@@ -238,11 +241,11 @@ function printAST(ast, options, level = 0, parentValue) {
 				msg = msg
 					.replace(new RegExp(`''`, 'g'), '|_single_|').replace(/'/g, '|_escape_|').replace(/\|_single_\|/g, "'")
 					.replace(new RegExp(`(?<=\s)\\\\?${sourceAltStart}|^\\\\?${sourceAltStart}`, 'g'), '|_altStart_|') // opening alt
-					.replace(new RegExp(`(?<=\\S)’(?=\\S)`, 'g'), '|_apostrophe_|') // apostrophe
+					.replace(new RegExp(`(?<=\\S)${sourceApostrophe}(?=\\S)`, 'g'), '|_apostrophe_|') // apostrophe
 					.replace(new RegExp(`\\\\?${sourceAltEnd}`, 'g'), '|_altEnd_|') // closing alt
 					.replace(new RegExp(`(?<=\\s(\\u0648)?)\\\\?${sourceQuoteStart}|^\\\\?${sourceQuoteStart}`, 'g'), '|_quoteStart_|') // opening quote
 					.replace(new RegExp(`\\\\?${sourceQuoteEnd}`, 'g'), '|_quoteEnd_|') // closing quote
-					.replace(/\|_apostrophe_\|/g, "’")
+					.replace(/\|_apostrophe_\|/g, apostrophe)
 					.replace(/\|_quoteStart_\|/g, quoteStart)
 					.replace(/\|_quoteEnd_\|/g, quoteEnd)
 					.replace(/\|_altStart_\|/g, altStart)
