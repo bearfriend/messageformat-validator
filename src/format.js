@@ -192,8 +192,9 @@ function printAST(ast, options, level = 0, parentValue) {
 				msg = msg
 					.replace(/''/g, '|_single_|').replace(/'/g, '|_escape_|').replace(/\|_single_\|/g, "'")
 					.replace(/(?<=\s)\\?'|^\\?'/g, altStart) // opening '
-					.replace(/(?<=\S)'(?=\S)/g, apostrophe) // apostrophe
+					.replace(/(?<=\S)'(?=\S)/g, '|_apostrophe_|') // apostrophe
 					.replace(/\\?'/g, altEnd) // closing '
+					.replace(/\|_apostrophe_\|/g, apostrophe)
 					.replace(/(?<=\s(\u0648)?)\\?"|^\\?"/g, quoteStart) // opening "
 					.replace(/\\?"/g, quoteEnd); // closing "
 			}
