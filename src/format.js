@@ -103,8 +103,8 @@ function normalizeArgName(name, type, availableArgs) {
 		} else {
 			const idx = availableArgs.findIndex(([n, t]) => t === type && n.toLowerCase() === name.toLowerCase());
 			if (idx > -1) {
-				const caseMatch = availableArgs.splice(idx, 1)[0];
-				return caseMatch;
+				// case match
+				return availableArgs.splice(idx, 1)[0][0];
 			}
 			return [...new Set(availableArgs
 				.reduce((acc, [n, t]) => t === type && acc.push(n) && acc || acc, [])
