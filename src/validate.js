@@ -134,6 +134,15 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 						const supportedCats = getPluralCats(targetLocale, part.pluralType);
 						const cats = Object.keys(part.options);
 						const missingCats = supportedCats.filter(c => c !== 'other' && !cats.includes(c));
+
+						if (missingCats.includes('one') && cats.includes('=1')) {
+							// locales where `one` can match something other than 1
+							const oneIsNot1Regex = /^(fr|da|hi|pt(?!-pt))(-?|$)/;
+							if (!oneIsNot1Regex.test(targetLocale)) {
+								missingCats.splice(missingCats.indexOf('one'), 1);
+							}
+						}
+
 						if (missingCats.length) msgReporter.warning('category-missing', `Missing ${missingCats.length === 1 ? 'category' : 'categories'} ${formatList(sortedCats.filter(c => missingCats.includes(c)).map(i => `"${i}"`))}`);
 						const unsupportedCats = cats.filter(c => !/^=\d+$/.test(c) && !supportedCats.includes(c));
 
