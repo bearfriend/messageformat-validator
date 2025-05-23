@@ -28,7 +28,7 @@ function expandASTHashes(ast, parentValue) {
 	}
 }
 
-function escape(msg) {
+function mfEscape(msg) {
 	return msg.replace(/'([{}](?:.*?[{}])?)'/gsu, "'''$1'''");
 }
 
@@ -36,7 +36,7 @@ export async function formatMessage(msg, options = {}) {
 	let ast;
 
 	try {
-		msg = options.quotes === 'straight' ? msg.replace(/'/g, "'''") : escape(msg);
+		msg = options.quotes === 'straight' ? msg.replace(/'/g, "'''") : mfEscape(msg);
 		ast = parse(msg, { requiresOtherClause: false });
 	} catch(err) {
 		try {
