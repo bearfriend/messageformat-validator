@@ -231,7 +231,7 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 
 					if (localeContents.includes(t)) {
 						const baseTabs = t.match('^\n?(?<tabs>\t*)').groups.tabs
-						const newVal = await formatMessage(t.val, {
+						let newVal = await formatMessage(t.val, {
 							locale,
 							sourceLocale,
 							add: commandOpts.add,
@@ -250,6 +250,9 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 						});
 						const valQuote = commandOpts.newlines && newVal.includes('\n') ? '`' : t.valQuote;
 						const valSpace = commandOpts.newlines && newVal.includes('\n') ? `\n\t${baseTabs}` : t.valSpace;
+
+						newVal = newVal.replaceAll(valQuote, `\\${valQuote}`);
+
 						const old = `${t.keyQuote}${t.key}${t.keyQuote}${t.keySpace}:${t.valSpace}${t.valQuote}${t.val}${t.valQuote}${t.comma}${t.comment}`;
 						const noo = `${t.keyQuote}${t.key}${t.keyQuote}${t.keySpace}:${valSpace}${valQuote}${newVal}${valQuote}${t.comma}${t.comment}`;
 

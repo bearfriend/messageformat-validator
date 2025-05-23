@@ -42,14 +42,27 @@ describe('validate', () => {
 		it('generates a "category-missing" warning when a target message is missing supported plural categories', () => {
 			targetLocale = 'cy-gb';
 			const sourceMessage = '{a, plural, one {} other {}}';
-			const targetMessage = '{a, plural, one {} other {}}';
+			const targetMessage = '{a, plural, other {}}';
 			reporter.config(targetMessage, sourceMessage, 'key');
 			reporter._config.locale = targetLocale;
 			validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale }, reporter);
 			expect(reporter.issues.length).to.equal(1);
 			expect(reporter.issues[0].type).to.equal('category-missing');
 			expect(reporter.issues[0].level).to.equal('warning');
-			expect(reporter.issues[0].msg).to.equal('Missing categories "zero", "two", "few", and "many"');
+			expect(reporter.issues[0].msg).to.equal('Missing categories "zero", "one", "two", "few", and "many"');
+		});
+
+		it('does not generate a "category-missing" warning for `one` in a target locale where `one` can only match 1 and `=1` exists', () => {
+			targetLocale = 'es';
+			const sourceMessage = '{a, plural, =1 {} other {}}';
+			const targetMessage = '{a, plural, =1 {} other {}}';
+			reporter.config(targetMessage, sourceMessage, 'key');
+			reporter._config.locale = targetLocale;
+			validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale }, reporter);
+			expect(reporter.issues.length).to.equal(1);
+			expect(reporter.issues[0].type).to.equal('category-missing');
+			expect(reporter.issues[0].level).to.equal('warning');
+			expect(reporter.issues[0].msg).to.equal('Missing category "many"');
 		});
 
 		it('generates "category" errors when a target message uses unsupported plural categories', () => {
