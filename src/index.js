@@ -1,2 +1,2 @@
 export { Reporter } from './reporter.js';
-export { validateMessage } from './validate.js';
+export { structureRegEx, validateMessage } from './validate.js';
