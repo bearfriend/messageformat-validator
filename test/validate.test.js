@@ -13,18 +13,154 @@ describe('validate', () => {
 
 	describe('structureRegEx', () => {
 
-		[{
-			name: 'simple argument',
-			message: 'abc{def}hij',
-			structure: '{def}'
-		},
-		{
-			name: 'multiple simple arguments',
-			message: 'abc{def}hij {klm} nop {qrs}',
-			structure: '{def}{klm}{qrs}'
-		}].forEach(({ name, message, structure }) => {
+		[
+			{
+				name: 'string',
+				message: `The octopus’s friend said, “Hello!”`,
+				structure: ''
+			},
+			{
+				name: 'simple argument',
+				message: 'The animal’s name is {animalName}',
+				structure: '{animalName}'
+			},
+			{
+				name: 'multiple simple arguments',
+				message: 'The {animalType}’s name is {animalName}',
+				structure: '{animalType}{animalName}'
+			},
+			{
+				name: 'select',
+				message: `{gender, select,
+					male {{animalName} the {animalType} loves his friends}
+					female {{animalName} the {animalType} loves her friends}
+					other {{animalName} the {animalType} loves their friends}
+				}`,
+				structure: `{gender, select,
+					male {{animalName}{animalType}}
+					female {{animalName}{animalType}}
+					other {{animalName}{animalType}}
+				}`
+			},
+			{
+				name: 'plural',
+				message: `{legCount, plural,
+					=0 {{animalName} the {animalType} has no legs}
+					one {{animalName} the {animalType} has # leg}
+					other {{animalName} the {animalType} has # legs}
+				}`,
+				structure: `{legCount, plural,
+					=0 {{animalName}{animalType}}
+					one {{animalName}{animalType}#}
+					other {{animalName}{animalType}#}
+				}`
+			},
+			{
+				name: 'offset',
+				message: `{octopusCount, plural, offset:2
+					=0 {All octopuses are accounted for}
+					=1 {{octopusName} has escaped through the drain!}
+					=2 {{octopusName} and {octopus2Name} have escaped through the drain!}
+					one {{octopusName}, {octopus2Name}, and # other octopus have escaped through the drain!}
+					other {{octopusName}, {octopus2Name}, and # other octopuses have escaped through the drain!}
+				}`,
+				structure: `{octopusCount, plural, offset:2
+					=0 {}
+					=1 {{octopusName}}
+					=2 {{octopusName}{octopus2Name}}
+					one {{octopusName}{octopus2Name}#}
+					other {{octopusName}{octopus2Name}#}
+				}`
+			},
+			{
+				name: 'selectordinal',
+				message: `{rank, selectordinal,
+					=1 {The {animalType} is the largest animal in the ocean}
+					one {The {animalType} is the #st largest animal in the ocean}
+					two {The {animalType} is the #nd largest animal in the ocean}
+					few {The {animalType} is the #rd largest animal in the ocean}
+					other {The {animalType} is the #th largest animal in the ocean}
+				}`,
+				structure: `{rank, selectordinal,
+					=1 {{animalType}}
+					one {{animalType}#}
+					two {{animalType}#}
+					few {{animalType}#}
+					other {{animalType}#}
+				}`
+			},
+			{
+				name: 'nested',
+				message: `{animalHabitat, select,
+					ocean {{rank, selectordinal,
+						=1 {The {animalType} is the largest animal in the ocean}
+						one {The {animalType} is the #st largest animal in the ocean}
+						two {The {animalType} is the #nd largest animal in the ocean}
+						few {The {animalType} is the #rd largest animal in the ocean}
+						other {The {animalType} is the #th largest animal in the ocean}
+					}}
+					land {{rank, selectordinal,
+						=1 {The {animalType} is the largest animal on land}
+						one {The {animalType} is the #st largest animal on land}
+						two {The {animalType} is the #nd largest animal on land}
+						few {The {animalType} is the #rd largest animal on land}
+						other {The {animalType} is the #th largest animal on land}
+					}}
+					other {{rank, selectordinal,
+						=1 {The {animalType} is the largest flying animal}
+						one {The {animalType} is the #st largest flying animal}
+						two {The {animalType} is the #nd largest flying animal}
+						few {The {animalType} is the #rd largest flying animal}
+						other {The {animalType} is the #th largest flying animal}
+					}}
+				}`,
+				structure: `{animalHabitat, select,
+					ocean {{rank, selectordinal,
+						=1 {{animalType}}
+						one {{animalType}#}
+						two {{animalType}#}
+						few {{animalType}#}
+						other {{animalType}#}
+					}}
+					land {{rank, selectordinal,
+						=1 {{animalType}}
+						one {{animalType}#}
+						two {{animalType}#}
+						few {{animalType}#}
+						other {{animalType}#}
+					}}
+					other {{rank, selectordinal,
+						=1 {{animalType}}
+						one {{animalType}#}
+						two {{animalType}#}
+						few {{animalType}#}
+						other {{animalType}#}
+					}}
+				}`
+			},
+			{
+				name: 'split',
+				message: `There {thingCount, plural, =0 {are no} other {are #} one {is #}} {type, select, other {"uncool"} neutral {"mid"} good {"cool"}} things at {name}'s house.`,
+				structure: `{thingCount, plural, =0 {} other {#} one {#}}{type, select, other {} neutral {} good {}}{name}`
+			},
+			{
+				name: 'dates & numbers',
+				message: `{animalName} the octopus’s birthday is on {birthday, date}. He invited {inviteCount, number} friends to his party, but only {acceptedShare, number, ::percent} can make it.`,
+				structure: `{animalName}{birthday, date}{inviteCount, number}{acceptedShare, number, ::percent}`
+			},
+			{
+				name: 'skeletons',
+				message: `{animalName} the octopus’s birthday is on {birthday, date, ::cccccMMMMd}. He invited {inviteCount, number, ::K} friends to his party, but only {acceptedShare, number, ::percent .0} can make it.`,
+				structure: `{animalName}{birthday, date, ::cccccMMMMd}{inviteCount, number, ::K}{acceptedShare, number, ::percent .0}`
+			},
+			{
+				name: 'escapes',
+				message: `An {argument}'s '{escaped}' with #'' '#'; '<b>'{notEscaped} #'</b>' '<' '}' '' <notEscaped> > '{}' '<>'`,
+				structure: `{argument}#''{notEscaped}#''<notEscaped>`
+			}
+		].forEach(({ name, message, structure }) => {
 			it(`captures messageformat structure - ${name}`, () => {
-				expect(message.match(structureRegEx).join('')).to.equal(structure);
+				expect((message.match(structureRegEx) ?? []).join('')).to.equal(structure);
 			});
 		})
 	})

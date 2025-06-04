@@ -6,7 +6,7 @@ function getPluralCats(locale) {
   return pluralCats[locale.split('-')[0]] || pluralCats.en;
 }
 
-export const structureRegEx = /(?<=\s*){(.|\n)*?[{}]|\s*}(.|\n)*?[{}]|[{#]|(\s*)}/g;
+export const structureRegEx = /(?<=\s*)(?<!(?<!'([{<>}](?:[^']*?[{<>}])?))')(''|([{<]([^']|\n)*?[{<>}])|\s*}([^']|\n)*?[{}]|#)/g;
 let reporter;
 
 export function validateLocales({ locales, sourceLocale }, localesReporter) {
