@@ -17,7 +17,7 @@ export async function getConfig(cwd) {
 
 export const sortedCats = ['zero', 'one', 'two', 'few', 'many', 'other'];
 export const paddedQuoteLocales = ['fr', 'fr-ca', 'fr-fr', 'fr-on', 'vi-vn'];
-export const structureRegEx = /(?<=\s*){(.|\n)*?[{}]|\s*}(.|\n)*?[{}]|[{#]|(\s*)}/g;
+export const structureRegEx = /(?<=\s*)(?<!(?<!'([{<>}](?:[^']*?[{<>}])?))')(''|([{<]([^']|\n)*?[{<>}])|\s*}([^']|\n)*?[{}]|#)/g
 
 export async function getLocaleData(locale) {
 	locale = (await getConfig(env.PWD))?.localesMap?.[locale] || locale;
