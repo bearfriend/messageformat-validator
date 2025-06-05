@@ -230,7 +230,10 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 					const source = commandOpts.correct ? sourceLocaleParsed[t.key] : null;
 
 					if (localeContents.includes(t)) {
-						const baseTabs = t.match('^\n?(?<tabs>\t*)').groups.tabs;
+						const baseTabs = t.valSpace.includes('\n') && !commandOpts.newlines
+							? t.valSpace.match(/^\n?(?<tabs>\t*)/).groups.tabs
+							: t.match(/^\n?(?<tabs>\t*)/).groups.tabs;
+
 						const unescapedValue = t.val.replaceAll(`\\${t.valQuote}`, t.valQuote);
 						let newVal = await formatMessage(unescapedValue, {
 							locale,
