@@ -312,7 +312,7 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 
 	await Promise.all(output.map(async(locale, idx) => {
 		const localeFile = `${locales[locale.locale].file}`;
-
+		const localeFilePath = `${localesPath}${localeFile}`;
 		if (!allowedLocales || allowedLocales.includes(locale.locale)) {
 
 			if (program.sort ||
@@ -321,7 +321,7 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 				program.printMissing ||
 				locale.report.totals.errors ||
 				locale.report.totals.warnings) {
-				console.log((idx > 0 ? '\n' : '') + chalk.underline(`${localesPath}${localeFile}`));
+				console.log((idx > 0 ? '\n' : '') + chalk.underline(localeFilePath));
 			}
 
 			if (programOpts.issues) {
@@ -376,7 +376,7 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 							}
 						}
 						else if (!programOpts.ignore || !programOpts.ignore
-							.replace(' ','')
+							.replace(' ', '')
 							.split(',')
 							.includes(issue.type)
 						) {
@@ -395,7 +395,7 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 				}
 
 				if (program.removeExtraneous || program.addMissing || program.sort) {
-					writeFile(localeFile, locales[locale.locale].contents);
+					await writeFile(localeFilePath, locales[locale.locale].contents);
 				}
 			}
 
