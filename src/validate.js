@@ -221,9 +221,9 @@ export function parseLocales(locales, useJSONObj) {
 		};
 
 		const regex = useJSONObj
-			? /("(?<realKey>.*)"(\s*):(\s*)\{)*\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s*):(?<valSpace>\s*)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?!\s?([\w\p{L}]|\k<valQuote>))(?<comma>,?)(?<comment>.*)/g
+			? /("(?<realKey>.*)"(\s*):(\s*)\{)*\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s*):(?<valSpace>\s*)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?!\s?([\w\p{L}]|\k<valQuote>))(?<comma>,?)(?<comment>.*)/gv
 			//[                               ][  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][     value    ][                    "                    ][     ,    ][ // comment ]
-			: /\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s*):(?<valSpace>\s*)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?!\s?([\w\p{L}]|\k<valQuote>))(?<comma>,?)(?<comment>.*)/g;
+			: /\s+(?<keyQuote>["'`]?)(?<key>.*?)\k<keyQuote>(?<keySpace>\s*):(?<valSpace>\s*)(?<valQuote>["'`])(?<val>(.|\n)*?)(?<!\\)\k<valQuote>(?!\s?([\w\p{L}]|\k<valQuote>))(?<comma>,?)(?<comment>.*)/gv;
 			//[  ][         "       ][   key   ][     "    ][             ][:][             ][        "       ][     value    ][                    "                    ][     ,    ][ // comment ]
 
 		const matches = Array.from(contents.matchAll(regex));
