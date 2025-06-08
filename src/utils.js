@@ -31,3 +31,6 @@ export function getPluralCats(locale, pluralType) {
 export function formatList(arr, locale = 'en') {
 	return new Intl.ListFormat(locale).format(arr);
 }
+
+// sort '.' above '-'
+export const sortFn = (a, b) => a.replace(/\./g, '\u0000') >= b.replace(/\./g, '\u0000') ? 1 : -1;

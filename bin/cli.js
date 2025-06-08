@@ -9,7 +9,7 @@ import chalk from 'chalk';
 import glob from 'glob';
 import pkg from '../package.json' with { type: 'json' };
 import { program, Option } from 'commander';
-import { getConfig, structureRegEx } from '../src/utils.js';
+import { getConfig, sortFn, structureRegEx } from '../src/utils.js';
 
 let formatMessage, commandOpts;
 const programArgs = {};
@@ -336,8 +336,8 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 							acc.push(block);
 							return acc;
 						}, [])
-						.map(block => block.sort().join(''))
-						.sort()
+						.map(block => block.sort(sortFn).join(''))
+						.sort(sortFn)
 						.join('\n');
 
 					locales[locale.locale].contents = locales[locale.locale].contents.replace(Object.values(locales[locale.locale].parsed).join(''), sorted);
