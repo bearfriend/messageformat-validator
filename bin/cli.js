@@ -85,8 +85,9 @@ program
 	.option('-a, --add', 'Add cases for missing supported pural and selectordinal categories')
 	.option('-r, --remove', 'Remove cases for unsupported pural and selectordinal categories')
 	.option('-d, --dedupe', 'Remove complex argument cases that duplicate the `other` case. Takes precedence over --add.')
-	.option('-t, --trim', 'Trim whitespace from both ends of messages')
+	.option('-t, --trim', 'Trim whitespace from both ends of messages. Disables selector hoisting.')
 	.option('-c, --correct', 'Attempt to correct argument names. A source locale must be provided.')
+	.addOption(new Option('--no-hoist', 'Do not hoist selectors').hideHelp())
 	.addOption(new Option('-q, --quotes <type>', 'Replace quote characters with locale-appropriate characters').choices(['source', 'straight', 'both']))
 	.action(async function() {
 		formatMessage = (await import('../src/format.js')).formatMessage;
@@ -246,6 +247,7 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 							collapse: commandOpts.collapse,
 							quotes: commandOpts.quotes,
 							expandHashes: true,
+							hoist: commandOpts.hoist,
 
 							baseTabs: baseTabs.length + (commandOpts.newlines ? 1 : 0),
 							key: t.key,

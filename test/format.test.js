@@ -168,10 +168,17 @@ describe('formatMessage', () => {
 		expect(formatted).to.equal(expected);
 	});
 
-	it('should hoist complex selectors to the outside and nest appropriately with no options', async() => {
+	it('should hoist selectors to the outside and nest appropriately with no options', async() => {
 		const message = `\t{a, plural, =1 {a cat} other {{a} cats}} and {b, plural, =1 {a dog} other {{b} dogs}}!`;
 		const expected = `{a, plural, =1 {{b, plural, =1 {\ta cat and a dog!} other {\ta cat and {b} dogs!}}} other {{b, plural, =1 {\t{a} cats and a dog!} other {\t{a} cats and {b} dogs!}}}}`;
 		const formatted = await formatMessage(message, { locale });
+		expect(formatted).to.equal(expected);
+	});
+
+	it('should not hoist selectors with the "trim" option', async() => {
+		const message = `\t{a, plural, =1 {a cat} other {{a} cats}} and {b, plural, =1 {a dog} other {{b} dogs}}!`;
+		const expected = `{a, plural, =1 {a cat} other {{a} cats}} and {b, plural, =1 {a dog} other {{b} dogs}}!`;
+		const formatted = await formatMessage(message, { locale, trim: true });
 		expect(formatted).to.equal(expected);
 	});
 
