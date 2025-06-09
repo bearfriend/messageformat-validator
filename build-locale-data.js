@@ -3,7 +3,7 @@ import { env, stderr } from 'node:process';
 import { formatList, getConfig } from './src/utils.js';
 import { dirname, join, posix } from 'node:path';
 
-const defaultLocales = ['ar', 'cy', 'da', 'de', 'en', 'en-gb', 'es', 'es-es', 'fr', 'fr-ca', 'fr-fr', 'haw', 'hi', 'ja', 'ko', 'mi', 'nl', 'pt', 'sv', 'tr', 'zh-cn', 'zh-tw'];
+const defaultLocales = ['ar', 'cy', 'da', 'de', 'en', 'en-gb', 'es', 'es-es', 'fr', 'fr-ca', 'fr-fr', 'haw', 'hi', 'ja', 'ko', 'mi', 'nl', 'pt', 'sv', 'th', 'tr', 'vi', 'zh-cn', 'zh-tw'];
 const defaultLocaleMap = { 'fr-on': 'fr-ca' };
 
 const SAVE_PATH = posix.join(dirname(import.meta.url), 'src/locale-data.js').replace(/file:(\/c:)?/i, '');
@@ -53,7 +53,7 @@ await (async() => {
 		cldr = (cldrImport).default;
 		const data = {};
 
-		locales.forEach(locale => {
+		nonDefaultLocales.forEach(locale => {
 			try {
 				locale = Intl.getCanonicalLocales(locale.trim().toLowerCase())[0];
 			} catch(e) {

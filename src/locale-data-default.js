@@ -161,7 +161,25 @@ export default {
 			"apostrophe": "’"
 		}
 	},
+	"th": {
+		"delimiters": {
+			"quotationStart": "“",
+			"quotationEnd": "”",
+			"alternateQuotationStart": "‘",
+			"alternateQuotationEnd": "’",
+			"apostrophe": "’"
+		}
+	},
 	"tr": {
+		"delimiters": {
+			"quotationStart": "“",
+			"quotationEnd": "”",
+			"alternateQuotationStart": "‘",
+			"alternateQuotationEnd": "’",
+			"apostrophe": "’",
+		}
+	},
+	"vi": {
 		"delimiters": {
 			"quotationStart": "“",
 			"quotationEnd": "”",
