@@ -129,6 +129,7 @@ const noSource = () => {
 	process.exit(1);
 };
 
+const writes = [];
 const localesPaths = glob.sync(pathCombined);
 const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 
@@ -397,7 +398,7 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 				}
 
 				if (program.removeExtraneous || program.addMissing || program.sort) {
-					await writeFile(localeFilePath, locales[locale.locale].contents);
+					writes.push([localeFilePath, locales[locale.locale].contents]);
 				}
 			}
 
@@ -456,6 +457,10 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 
 	return totals;
 }));
+
+for (const [path, contents] of writes) {
+	await writeFile(path, contents);
+}
 
 if (results.filter(r => r).length) {
 
