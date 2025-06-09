@@ -311,9 +311,9 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 	if (!sourceLocale) noSource();
 
 	const output = validateLocales({ locales, sourceLocale });
-	const translatorOutput = {};
 
 	await Promise.all(output.map(async(locale, idx) => {
+		const printMissing = {};
 		const localeFile = `${locales[locale.locale].file}`;
 		const localeFilePath = `${localesPath}${localeFile}`;
 		if (!allowedLocales || allowedLocales.includes(locale.locale)) {
@@ -375,7 +375,7 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 						}
 						else if (program.printMissing) {
 							if (['missing', 'untranslated'].includes(issue.type)) {
-								translatorOutput[issue.key] = issue.source;
+								printMissing[issue.key] = issue.source;
 							}
 						}
 						else if (!programOpts.ignore || !programOpts.ignore
@@ -403,7 +403,7 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 			}
 
 			if (program.printMissing) {
-				console.log(JSON.stringify(translatorOutput, null, 2));
+				console.log(JSON.stringify(printMissing, null, 2));
 			}
 			else if (program.removeExtraneous) {
 				const count = locale.report.errors ? locale.report.errors.extraneous || 0 : 0;
