@@ -457,6 +457,8 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 
 if (results.filter(r => r).length) {
 
+	let exitCode = 0;
+
 	const totals = {
 		errors: 0,
 		warnings: 0,
@@ -490,7 +492,8 @@ if (results.filter(r => r).length) {
 
 	if (totals.errors - totals.ignored.errors) {
 		console.error('\nErrors were reported in at least one locale. See details above.');
+		exitCode = 1;
 	}
 
-	process.exit(Number(Boolean(results.find(r => r === 1))));
+	process.exit(exitCode);
 }
