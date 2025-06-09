@@ -61,10 +61,13 @@ export async function formatMessage(msg, options = {}) {
 	if (options.expandHashes) {
 		expandASTHashes(ast);
 	}
-	try {
-		ast = hoistSelectors(ast);
-	} catch(e) {
-		console.log(e);
+
+	if ((options.hoist ?? true) && !options.trim) {
+		try {
+			ast = hoistSelectors(ast);
+		} catch(e) {
+			console.log(e);
+		}
 	}
 
 	const localeData = { [options.locale]: await getLocaleData(options.locale) };
