@@ -205,7 +205,7 @@ function printAST(ast, options, level = 0, parentValue) {
 					.replace(/\\?"/g, quoteEnd); // closing "
 			}
 
-			if (quotes === 'source' || quotes === 'both') {
+			if (quotes === 'source' || quotes === 'both' && !locale.endsWith('-gb')) {
 				const {
 					quoteEnd: sourceQuoteEnd,
 					quoteStart: sourceQuoteStart,
@@ -250,8 +250,8 @@ function printAST(ast, options, level = 0, parentValue) {
 					.replace(new RegExp(`(?<=\s)\\\\?${sourceAltStart}|^\\\\?${sourceAltStart}`, 'g'), '|_altStart_|') // opening alt
 					.replace(new RegExp(`(?<=\\S)${sourceApostrophe}(?=\\S)`, 'g'), '|_apostrophe_|') // apostrophe
 					.replace(new RegExp(`\\\\?${sourceAltEnd}`, 'g'), '|_altEnd_|') // closing alt
-					.replace(new RegExp(`(?<=\\s(\\u0648)?)\\\\?${sourceQuoteStart}|^\\\\?${sourceQuoteStart}`, 'g'), '|_quoteStart_|') // opening quote
-					.replace(new RegExp(`\\\\?${sourceQuoteEnd}`, 'g'), '|_quoteEnd_|') // closing quote
+					.replace(new RegExp(`\\\\?${sourceQuoteStart}(\\b|(?=\\p{Sc}|\\p{P}))`, 'g'), '|_quoteStart_|') // opening quote
+					.replace(new RegExp(`\\b\\\\?${sourceQuoteEnd}`, 'g'), '|_quoteEnd_|') // closing quote
 					.replace(/\|_apostrophe_\|/g, apostrophe)
 					.replace(/\|_quoteStart_\|/g, quoteStart)
 					.replace(/\|_quoteEnd_\|/g, quoteEnd)

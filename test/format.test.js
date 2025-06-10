@@ -9,25 +9,31 @@ describe('formatMessage', () => {
 	});
 
 	[
-		{ locale: 'ar', expected: `This isn’t ”correct“` },
-		{ locale: 'cy', expected: `This isn’t “correct”` },
-		{ locale: 'de', expected: `This isn’t „correct“` },
-		{ locale: 'en', expected: `This isn’t “correct”` },
-		{ locale: 'en-gb', expected: `This isn’t ‘correct’` },
-		{ locale: 'fr', expected: `This isn’t «\u202fcorrect\u202f»` },
-		{ locale: 'haw', expected: `This isn't “correct”` },
-		{ locale: 'sv', expected: `This isn’t ”correct”` },
+		{ locale: 'ar', expected: `This isn’t ”correct“.` },
+		{ locale: 'cy', expected: `This isn’t “correct”.` },
+		{ locale: 'de', expected: `This isn’t „correct“.` },
+		{ locale: 'en', expected: `This isn’t “correct”.` },
+		{ locale: 'en-gb', expected: `This isn’t ‘correct’.` },
+		{ locale: 'fr', expected: `This isn’t «\u202fcorrect\u202f».` },
+		{ locale: 'haw', expected: `This isn't “correct”.` },
+		{ locale: 'sv', expected: `This isn’t ”correct”.` },
+		{ locale: 'mi', expected: `This isn’t "correct".` },
 	].forEach(({ locale, expected }) => {
 		it(`should replace straight quotes with "${locale}" quotes when "quotes" option is "straight"`, async() => {
-			const message = `This isn't "correct"`;
+			const message = `This isn't "correct".`;
 			const formatted = await formatMessage(message, { locale, sourceLocale: 'en', quotes: 'straight' });
 			expect(formatted).to.equal(expected);
 		});
 
-		it(`should replace source quotes with "${locale}" quotes when "quotes" option is "source"`, async() => {
-			const message = `This isn’t “correct”`;
+		it(`should replace source quotes with "${locale}" quotes when "quotes" option is "source"`, async () => {
+			const message = `This isn’t “correct”.`;
 			const formatted = await formatMessage(message, { locale, sourceLocale: 'en', quotes: 'source' });
 			expect(formatted).to.equal(expected);
+		});
+
+		it(`should not alter own "${locale}" quotes when "quotes" option is "source"`, async() => {
+			const formattedSelf = await formatMessage(expected, { locale, sourceLocale: 'en', quotes: 'source' });
+			expect(formattedSelf).to.equal(expected);
 		});
 	});
 
