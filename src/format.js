@@ -19,11 +19,11 @@ function expandASTHashes(ast, parentValue) {
 		ast.map(ast => expandASTHashes(ast, parentValue));
 	}
 
-	if (ast.type === 7) { // #
+	if (ast.type === 7 && parentValue) { // #
 		ast.type = 1;
 		ast.value = parentValue;
 	}
-	else if (ast.type === 6) { // plural, selectordinal
+	else if (ast.type === 6 && !ast.offset) { // plural, selectordinal
 		expandASTHashes(Object.values(ast.options).map(o => o.value), ast.value);
 	}
 }

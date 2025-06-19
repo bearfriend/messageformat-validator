@@ -216,4 +216,18 @@ describe('formatMessage', () => {
 		expect(formatted).to.equal(expected);
 	});
 
+	it(`should replace hashes`, async() => {
+		const message = `{a, plural, one {There is # thing}}`;
+		const expected = `{a, plural, one {There is {a} thing}}`;
+		const formatted = await formatMessage(message, { locale, expandHashes: true });
+		expect(formatted).to.equal(expected);
+	});
+
+	it(`should not replace hashes if there is an offset`, async() => {
+		const message = `{a, plural, offset:1 one {There is # thing}}`;
+		const expected = `{a, plural, offset:1 one {There is # thing}}`;
+		const formatted = await formatMessage(message, { locale, expandHashes: true });
+		expect(formatted).to.equal(expected);
+	});
+
 });
