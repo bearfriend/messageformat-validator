@@ -332,18 +332,25 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 				locale.report.totals.ignored = { warnings: 0, errors: 0 };
 
 				if (program.sort) {
+					let lastComma = ',';
 					const sorted = Object.values(locales[locale.locale].parsed)
 						.reduce((acc, val) => {
 							const block = !val.startsWith('\n\n') ? acc.pop() || [] : [];
+							if (!val.comma) {
+								lastComma = '';
+								val.comma = ',';
+								val = `${val.match(/\s*/)[0]}${val.keyQuote}${val.key}${val.keyQuote}${val.keySpace}:${val.valSpace}${val.valQuote}${val.val}${val.valQuote}${val.comma}${val.comment}`;
+							}
 							block.push(val.replace('\n\n', '\n'));
 							acc.push(block);
 							return acc;
 						}, [])
 						.map(block => block.sort(sortFn).join(''))
 						.sort(sortFn)
-						.join('\n');
 
-					locales[locale.locale].contents = locales[locale.locale].contents.replace(Object.values(locales[locale.locale].parsed).join(''), sorted);
+					const last = sorted.pop();
+					sorted.push(last.replace(/,(\s*($|\/\/[^\n]*))/, `${lastComma}$1`));
+					locales[locale.locale].contents = locales[locale.locale].contents.replace(Object.values(locales[locale.locale].parsed).join(''), sorted.join('\n'));
 				}
 				else {
 
