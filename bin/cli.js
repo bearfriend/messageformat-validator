@@ -349,7 +349,7 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 						.sort(sortFn)
 
 					const last = sorted.pop();
-					sorted.push(last.replace(/,(\s*($|\/\/[^\n]*))/, `${lastComma}$1`));
+					sorted.push(last.replace(/,(\s*(\/\/[^\n]*)?$)/, `${lastComma}$1`));
 					locales[locale.locale].contents = locales[locale.locale].contents.replace(Object.values(locales[locale.locale].parsed).join(''), sorted.join('\n'));
 				}
 				else {
