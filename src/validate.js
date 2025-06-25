@@ -271,7 +271,7 @@ export function parseLocales(locales, useJSONObj) {
 	}, {});
 }
 
-function _map(ast, partsMap = { nested: false, arguments: new Set(), cases: [], messageTokens: [] }) {
+function _map(ast, partsMap = { nestIdeal: false, arguments: new Set(), cases: [], messageTokens: [] }) {
 	//console.log(ast);
 	//console.log(JSON.stringify(partsMap, null, '\t'));
 	ast.forEach(token => {

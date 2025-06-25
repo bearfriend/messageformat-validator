@@ -319,6 +319,7 @@ function printAST(ast, options, level = 0, parentValue) {
 		const unsupportedCats = [ ...Object.keys(ast.options).filter(o => !/^=\d+$/.test(o)) , ...sortedCats].filter(cat => !supportedCats.includes(cat));
 		if (add) {
 			supportedCats.forEach(cat => {
+				// TODO: check actual locale plural categories
 				if (!/^(fr|pt)/.test(locale) && cat === 'one' && ast.options['=1']) return; // don't create orphaned `one`
 				// add missing supported categories
 				ast.options[cat] ??= { ...(ast.options.other || ast.options.many || ast.options.few || Object.values(ast.options).at(-1)) };
@@ -330,11 +331,20 @@ function printAST(ast, options, level = 0, parentValue) {
 			if (ast.options['=1'] && JSON.stringify(ast.options['=1']) === JSON.stringify(ast.options['one'])) {
 				delete ast.options['=1'];
 			}
-		} else if (ast.options['=1'] && /(?<!(=|offset:|"type":\s?))1/.test(JSON.stringify(ast.options['=1'].value))) { // TODO: recursively check actual options
-			// `=1` exists with literal "1" text
-			ast.options.one = ast.options['=1'];
-			delete ast.options['=1'];
-			swapOne.add(ast.value);
+		} else if (ast.options['=1']) {
+			if (/(?<!(=|offset:|"type":\s?))1/.test(JSON.stringify(ast.options['=1'].value))) { // TODO: recursively check actual options
+				// `=1` exists with literal "1" text
+				ast.options.one = ast.options['=1'];
+				delete ast.options['=1'];
+				swapOne.add(ast.value);
+			} else if (locale === sourceLocale && locale.startsWith('en')) {
+				const enBasicPluralsRegEx = /e|s|es(?=\s|$|\p{P})/gv;
+				if (printAST(ast.options.other.value, { locale, args }).replace(enBasicPluralsRegEx, '') === printAST(ast.options['=1'].value, { locale, args }).replace(enBasicPluralsRegEx, '')) {
+					ast.options.one = ast.options['=1'];
+					delete ast.options['=1'];
+					swapOne.add(ast.value);
+				}
+			}
 		}
 
 		if (dedupe && ast.options.other) {

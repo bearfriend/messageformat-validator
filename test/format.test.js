@@ -143,6 +143,13 @@ describe('formatMessage', () => {
 		expect(formatted).to.equal(expected);
 	});
 
+	it(`should convert "=1" keys to "one" when the only differences from "other" are "s" or "es"`, async() => {
+		const message = `{a, plural, =1 {Some value} other {Some values}}`;
+		const expected = `{a, plural, one {Some value} other {Some values}}`;
+		const formatted = await formatMessage(message, { locale, sourceLocale: 'en', dedupe: true });
+		expect(formatted).to.equal(expected);
+	});
+
 	it(`should remove "=1" cases when they can be converted to a duplicate case with the "dedupe" option`, async() => {
 		const message = `{a, plural, =1 {value 1} other {value {a}}}`;
 		const expected = `{a, plural, other {value {a}}}`;
