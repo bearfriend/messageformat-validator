@@ -224,9 +224,59 @@ describe('validate', () => {
 			expect(reporter.issues.length).to.equal(0);
 		});
 
-		it('generates a "nest-ideal" error with plural inside select', () => {
-			const sourceMessage = '{a, plural, one {} other {{b, select, other {}}}}';
-			const targetMessage = '{a, plural, one {} other {{b, select, other {}}}}';
+		it('generates a "nest-ideal" error with select inside plural', () => {
+			const sourceMessage = `{outcomes, select,
+						competencies {{num, plural,
+							one {Remove lower-level competency?}
+							other {Remove lower-level competencies?}
+						}}
+						expectations {{num, plural,
+							one {Remove lower-level expectation?}
+							other {Remove lower-level expectations?}
+						}}
+						objectives {{num, plural,
+							one {Remove lower-level objective?}
+							other {Remove lower-level objectives?}
+						}}
+						outcomes {{num, plural,
+							one {Remove lower-level outcome?}
+							other {Remove lower-level outcomes?}
+						}}
+						standards {{num, plural,
+							one {Remove lower-level standard?}
+							other {Remove lower-level standards?}
+						}}
+						other {{num, plural,
+							one {Remove lower-level standard?}
+							other {Remove lower-level standards?}
+						}}
+					}`;
+			const targetMessage = `{outcomes, select,
+						competencies {{num, plural,
+							one {Remove lower-level competency?}
+							other {Remove lower-level competencies?}
+						}}
+						expectations {{num, plural,
+							one {Remove lower-level expectation?}
+							other {Remove lower-level expectations?}
+						}}
+						objectives {{num, plural,
+							one {Remove lower-level objective?}
+							other {Remove lower-level objectives?}
+						}}
+						outcomes {{num, plural,
+							one {Remove lower-level outcome?}
+							other {Remove lower-level outcomes?}
+						}}
+						standards {{num, plural,
+							one {Remove lower-level standard?}
+							other {Remove lower-level standards?}
+						}}
+						other {{num, plural,
+							one {Remove lower-level standard?}
+							other {Remove lower-level standards?}
+						}}
+					}`;
 			reporter.config(targetMessage, sourceMessage, 'key');
 			validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale }, reporter);
 			expect(reporter.issues.length).to.equal(1);
