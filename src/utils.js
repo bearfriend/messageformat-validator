@@ -2,6 +2,18 @@ import { env } from 'node:process';
 import findConfig from 'find-config';
 import localeData from './locale-data.js';
 
+export function getArgs(asts, types = [1,2,3,4,5,6,8], args = []) {
+	asts.forEach(ast => {
+		if (types.includes(ast.type)) {
+			if (ast.type === 8) args.push([ast.value, ast.type]); // account for closing tag
+			args.push([ast.value, ast.type]);
+		}
+		if (ast.options) Object.values(ast.options).map(({ value: asts }) => getArgs(asts, types, args));
+		if (ast.children) args.concat(getArgs(ast.children, types, args));
+	})
+	return args;
+}
+
 export async function getConfig(cwd) {
 	const configPath = findConfig('mfv.config.json', { cwd });
 	const config = configPath ? (await import(`file://${configPath}`, { with: { type: 'json' } }))?.default ?? {} : {};

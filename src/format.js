@@ -1,18 +1,6 @@
 import { hoistSelectors } from '@formatjs/icu-messageformat-parser/manipulator.js';
 import { parse } from '@formatjs/icu-messageformat-parser';
-import { getLocaleData, getPluralCats, paddedQuoteLocales, sortedCats, structureRegEx } from './utils.js';
-
-function getArgs(asts, types = [1,2,3,4,5,6,8], args = []) {
-	asts.forEach(ast => {
-		if (types.includes(ast.type)) {
-			if (ast.type === 8) args.push([ast.value, ast.type]); // account for closing tag
-			args.push([ast.value, ast.type]);
-		}
-		if (ast.options) Object.values(ast.options).map(({ value: asts }) => getArgs(asts, types, args));
-		if (ast.children) args.concat(getArgs(ast.children, types, args));
-	})
-	return args;
-}
+import { getArgs, getLocaleData, getPluralCats, paddedQuoteLocales, sortedCats, structureRegEx } from './utils.js';
 
 function expandASTHashes(ast, parentValue) {
 	if (Array.isArray(ast)) {
