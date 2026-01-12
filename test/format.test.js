@@ -167,7 +167,7 @@ describe('formatMessage', () => {
 	it(`should convert "=1" keys to "one" when the only differences from "other" are "s" or "es"`, async() => {
 		const message = `{a, plural, =1 {Some value} other {Some values}}`;
 		const expected = `{a, plural, one {Some value} other {Some values}}`;
-		const formatted = await formatMessage(message, { locale, sourceLocale: 'en', dedupe: true });
+		const formatted = await formatMessage(message, { locale, sourceLocale: 'en' });
 		expect(formatted).to.equal(expected);
 	});
 

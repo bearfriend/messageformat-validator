@@ -117,14 +117,23 @@ describe('validate', () => {
 		// arg
 
 		it('generates an "argument" error with unrecognized argument', () => {
-			const sourceMessage = 'An {arg}';
-			const targetMessage = 'An {arG}';
+			const sourceMessage = 'An {arg} {arg} {arg2, plural, one {{arg2}} other {}}';
+			const targetMessage = 'An {arG} {arg} {arg2}';
 			reporter.config(targetMessage, sourceMessage, 'key');
 			validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale }, reporter);
-			expect(reporter.issues.length).to.equal(1);
+			expect(reporter.issues.length).to.equal(3);
 			expect(reporter.issues[0].type).to.equal('argument');
 			expect(reporter.issues[0].level).to.equal('error');
-			expect(reporter.issues[0].msg).to.equal('Unrecognized argument "arG". Source message uses "arg".');
+			expect(reporter.issues[0].msg).to.equal('Unrecognized argument "arG". Source message uses "arg" and "arg2".');
+		});
+
+		it('does not generate an "argument" error with repeat arguments', () => {
+			const sourceMessage = '{groupAmount, plural, one {{arg1}} other {{arg1}}}';
+			const targetMessage = '{groupAmount, plural, zero {{arg1}} one {{arg1}} two {{arg1}} few {{arg1}} many {{arg1}} other {{arg1}}}'
+			reporter.config(targetMessage, sourceMessage, 'key');
+			validateMessage({ targetMessage, targetLocale: 'ar', sourceMessage, sourceLocale }, reporter);
+			console.log(reporter.issues);
+			expect(reporter.issues.length).to.equal(0);
 		});
 
 		// brace

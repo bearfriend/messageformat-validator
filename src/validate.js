@@ -1,4 +1,4 @@
-import { formatList, getPluralCats, sortedCats, structureRegEx } from './utils.js';
+import { formatList, getArgs, getPluralCats, sortedCats, structureRegEx } from './utils.js';
 import { Reporter } from './reporter.js';
 import { parse } from '@formatjs/icu-messageformat-parser';
 
@@ -164,11 +164,14 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 		const targetMap = _map(targetTokens);
 		const sourceMap = _map(sourceTokens);
 
-		const argDiff = Array.from(targetMap.arguments).filter(arg => !Array.from(sourceMap.arguments).includes(arg));
+		const srcArgs = new Set(getArgs(sourceTokens).map(e => e.join('')));
+		const tgtArgs = new Set(getArgs(targetTokens).map(e => e.join('')));
+
+		const argDiff = Array.from(tgtArgs).filter(arg => !Array.from(srcArgs).includes(arg));
 
 		const badArgPos = targetMessage.indexOf(argDiff[0]);
 		if (argDiff.length) {
-			msgReporter.error('argument', `Unrecognized ${argDiff.length === 1 ? 'argument' : 'arguments'} ${formatList(argDiff.map(i => `"${i}"`))}. Source message uses ${formatList(Array.from(sourceMap.arguments).map(i => `"${i}"`))}.`, { column: badArgPos });
+			msgReporter.error('argument', `Unrecognized ${argDiff.length === 1 ? 'argument' : 'arguments'} ${formatList(argDiff.map(i => `"${i.slice(0, -1)}"`))}. Source message uses ${formatList([...new Set([...srcArgs].map(a => a.slice(0, -1)))].map(i => `"${i}"`))}.`, { column: badArgPos });
 		}
 
 		checkNbsp(targetMessage, msgReporter);
