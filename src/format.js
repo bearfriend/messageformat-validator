@@ -326,24 +326,27 @@ function printAST(ast, options, level = 0, parentValue) {
 			});
 		}
 
-		if (ast.options.one) {
-			// `one` and `=1` are the same
-			if (ast.options['=1'] && JSON.stringify(ast.options['=1']) === JSON.stringify(ast.options['one'])) {
-				delete ast.options['=1'];
-			}
-		} else if (ast.options['=1']) {
-			if (/(?<!(=|offset:|"type":\s?))1/.test(JSON.stringify(ast.options['=1'].value))) { // TODO: recursively check actual options
+		if (ast.options['=1'] && !ast.offset) {
+			if (ast.options['=1'].value.filter(o => o.type === 0).map(o => o.value).join('').includes('1')) { // TODO: recursively check actual options
 				// `=1` exists with literal "1" text
 				ast.options.one = ast.options['=1'];
 				delete ast.options['=1'];
 				swapOne.add(ast.value);
 			} else if (locale === sourceLocale && locale.startsWith('en')) {
+				// `=1` exists with basic Englished pluralization differences
 				const enBasicPluralsRegEx = /e|s|es(?=\s|$|\p{P})/gv;
 				if (printAST(ast.options.other.value, { locale, args }).replace(enBasicPluralsRegEx, '') === printAST(ast.options['=1'].value, { locale, args }).replace(enBasicPluralsRegEx, '')) {
 					ast.options.one = ast.options['=1'];
 					delete ast.options['=1'];
 					swapOne.add(ast.value);
 				}
+			}
+		}
+
+		if (ast.options.one && !ast.offset) {
+			// `one` and `=1` are the same
+			if (ast.options['=1'] && JSON.stringify(ast.options['=1']) === JSON.stringify(ast.options['one'])) {
+				delete ast.options['=1'];
 			}
 		}
 

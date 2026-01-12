@@ -136,9 +136,30 @@ describe('formatMessage', () => {
 		expect(formatted).to.equal(expected);
 	});
 
+	it(`should not convert "=1" keys to "one" by default`, async() => {
+		const message = `{a, plural, =1 {value}}`;
+		const expected = `{a, plural, =1 {value}}`;
+		const formatted = await formatMessage(message, { locale, dedupe: true });
+		expect(formatted).to.equal(expected);
+	});
+
+	it(`should not convert "=1" keys to "one" with an argument`, async() => {
+		const message = `{a, plural, =1 {{value}}}`;
+		const expected = `{a, plural, =1 {{value}}}`;
+		const formatted = await formatMessage(message, { locale, dedupe: true });
+		expect(formatted).to.equal(expected);
+	});
+
 	it(`should convert "=1" keys to "one" when it contains a literal "1"`, async() => {
 		const message = `{a, plural, =1 {value 1}}`;
 		const expected = `{a, plural, one {value {a}}}`;
+		const formatted = await formatMessage(message, { locale, dedupe: true });
+		expect(formatted).to.equal(expected);
+	});
+
+	it(`should not convert "=1" keys to "one" with an offset`, async() => {
+		const message = `{a, plural, offset:2 =1 {value 1}}`;
+		const expected = `{a, plural, offset:2 =1 {value 1}}`;
 		const formatted = await formatMessage(message, { locale, dedupe: true });
 		expect(formatted).to.equal(expected);
 	});
