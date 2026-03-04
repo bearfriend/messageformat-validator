@@ -428,4 +428,21 @@ describe('validate', () => {
 		});
 
 	});
+
+	describe('parseLocales', () => {
+
+		it('correctly parses a value that is a double backslash (\\\\)', () => {
+			const locales = parseLocales([{
+				file: 'en.json',
+				contents: `{
+  "intl-common:characters:backslash": "\\\\", // short name or description of the "\\" character
+}`
+			}]);
+
+			expect(locales['en'].parsed['intl-common:characters:backslash']).to.exist;
+			expect(locales['en'].parsed['intl-common:characters:backslash'].val).to.equal('\\\\');
+			expect(locales['en'].parsed['intl-common:characters:backslash'].comment).to.equal(' // short name or description of the "\\" character');
+		});
+
+	});
 });
