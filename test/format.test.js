@@ -56,6 +56,18 @@ describe('formatMessage', () => {
 		});
 	});
 
+	it('should convert apostrophes in plain text without arguments', async() => {
+		const message = `It's a nice day`;
+		const formatted = await formatMessage(message, { locale: 'en' });
+		expect(formatted).to.equal(`It’s a nice day`);
+	});
+
+	it('should convert apostrophes followed by whitespace', async() => {
+		const message = `{students}' assignments' titles`;
+		const formatted = await formatMessage(message, { locale: 'en' });
+		expect(formatted).to.equal(`{students}’ assignments’ titles`);
+	});
+
 	[
 		{ locale: 'ar', expected:
 `{a, plural,
