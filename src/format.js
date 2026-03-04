@@ -121,8 +121,6 @@ function printAST(ast, options, level = 0, parentValue) {
 		trim = false,
 		args = [],
 		localeData,
-		isFirst = true,
-		isLast = true
 	} = options;
 
 	const localeLower = locale.toLowerCase();
@@ -145,8 +143,6 @@ function printAST(ast, options, level = 0, parentValue) {
 					}
 				}
 				return printAST(ast, { ...options,
-					isFirst: !idx,
-					isLast: idx === arr.length - 1,
 					swapOne: swapOneClone,
 					trim
 				},
@@ -248,6 +244,11 @@ function printAST(ast, options, level = 0, parentValue) {
 				/* eslint-enable no-useless-escape */
 			}
 		}
+		if (!quotes && localeData?.[locale]) {
+			const { delimiters } = localeData[locale];
+			const apostrophe = delimiters.apostrophe ?? '\u2019';
+			msg = msg.replace(/'/g, apostrophe);
+		}
 		return msg.replace(/\|_escape_\|/g, "'");
 	}
 
@@ -258,15 +259,6 @@ function printAST(ast, options, level = 0, parentValue) {
 
 	if (type === 0) { // straight text
 		let escaped = ast.value;
-		// If this literal starts with a ' and its not the 1st node, this means the node before it is non-literal
-		// and the `'` needs to be unescaped
-		if (!isFirst && escaped[0] === "'") {
-			escaped = "''".concat(escaped.slice(1));
-		}
-		// Same logic but for last el
-		if (!isLast && escaped[escaped.length - 1] === "'") {
-			escaped = "".concat(escaped.slice(0, escaped.length - 1), "''");
-		}
 		escaped = escaped.replace(/'([{}](?:.*[{}])?)'/gsu, "|_escape_|$1|_escape_|");
 		escaped = parentValue ? escaped.replace("'#'", "|_escape_|#|_escape_|") : escaped;
 
