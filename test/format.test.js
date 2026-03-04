@@ -25,7 +25,7 @@ describe('formatMessage', () => {
 			expect(formatted).to.equal(expected);
 		});
 
-		it(`should replace source quotes with "${locale}" quotes when "quotes" option is "source"`, async () => {
+		it(`should replace source quotes with "${locale}" quotes when "quotes" option is "source"`, async() => {
 			const message = `This isn’t “correct”.`;
 			const formatted = await formatMessage(message, { locale, sourceLocale: 'en', quotes: 'source' });
 			expect(formatted).to.equal(expected);
@@ -37,14 +37,22 @@ describe('formatMessage', () => {
 		});
 	});
 
+	it('should identifiy apostrophes', async () => {
+		const message = `{evidenceTitle} collected {dateCollected} - {studentName}'s Portfolio`;
+		const expected = `{evidenceTitle} collected {dateCollected} - {studentName}’s Portfolio`;
+		const formatted = await formatMessage(message, { locale: 'en', sourceLocale: 'en' });
+		expect(formatted).to.equal(expected);
+	});
+
 	[
 		{ condition: 'no options are set', options: {} },
 		{ condition: 'the "quotes" option is "straight"', options: { quotes: 'straight' } }
 	].forEach(({ condition, options }) => {
 		it(`should preserve escapes when ${condition}`, async() => {
-			const message = `An '{escaped}' argument`;
+			const message = `An '{escaped}' argument and an {argument}'s escape`;
+			const expected = `An '{escaped}' argument and an {argument}’s escape`;
 			const formatted = await formatMessage(message, { locale: 'en', sourceLocale: 'en', ...options });
-			expect(formatted).to.equal(message);
+			expect(formatted).to.equal(expected);
 		});
 	});
 
