@@ -31,15 +31,18 @@ Output the `myMessage` message from the `es-es` file with all messageformat stru
 mfv -l es-es -p lang/ highlight myMessage
 ```
 
+Re-write messages to a standard format, using newlines and tabs for complex arguments, and removing any plural categories that are invalid for each locale (e.g. `zero` for English, `one` for Korean)
+```shell
+mfv -s en -p lang/ format -nr
+```
+
 ### Options:
 
 `-V, --version` - output the version number
 
-`-e, --throw-errors` - Throw an error if error issues are found
-
 `--no-issues` - Don't output issues
 
-`-i, --ignoreIssueTypes <items>` - Ignore these comma-separated issue types
+`-i, --ignore <items>` - Ignore these comma-separated issue types
 
 `-l, --locales <items>` - Process only these comma-separated locales
 
@@ -51,7 +54,7 @@ mfv -l es-es -p lang/ highlight myMessage
 
 `--json-obj` - Indicate that the files to be parsed are JSON files with keys that have objects for values with their own keys: `translation` and `context`
 
-`-h, --help` - display help for command
+`-h, --help` - Display help for command
 
 ### Subommands:
 
@@ -65,7 +68,7 @@ mfv -l es-es -p lang/ highlight myMessage
 
 `highlight <key>` - Output a message with all non-translatable ICU MessageFormat structure highlighted
 
-`help [command]` - display help for command
+`format` - Rewrite messages to a standard format
 
 ## Config File
 
@@ -74,39 +77,47 @@ Some options can be configured with default values in `mfv.config.json`
 {
   "source": "en"
   "path": "lang/",
-  "locales": "ar,de,en,es,es-es,hi,tr",
+  "locales": ["ar", "de", "en", "es", "es-es", "hi", "tr"],
   "jsonObj": true
 }
 ```
 
 ## Errors
 
-`argument` - There are unrecognized arguments in the target message.
+`argument` - Unrecognized argument
 
-`brace` - There are mismatched braces in the target message.
+`brace` - Mismatched braces
 
-`case` - There are unrecognized cases in the target message.
+`category` - Unsupported category
 
-`extraneous` - There is an extraneous message in the target locale.
+`duplicate` - Multiple messages with the same name
 
-`missing` - There is a message missing from the target locale.
+`extraneous` - Message does not exist in the source locale
 
-`nbsp` - There are invalid non-breaking spaces in the structure of the target message.
+`missing` - Message missing from the target locale
 
-`nest` - The nesting order of the target message does not match the source message.
+`nbsp` - Message structure contains non-breaking space
 
-`other` - The target message is missing an `other` case
+`nest` - The nesting order of the target message does not match the source message
 
-`parse` - The target message can not be parsed.
+`option` - Unrecognized option
 
-`source` - There is an error in the source message.
+`option-missing` - Missing option used in the source
+
+`other` - Missing "other" option
+
+`parse` - Failed to parse message
+
+`source` - Failed to parse source message
 
 ## Warnings
 
-`categories` - The target message is missing plural categories used in the target locale
+`category-missing` - Missing categories used by the target locale
 
-`nest` - There is a `select` nested inside a `plural` or `selectordinal` in the target message.
+`nest-ideal` - A `select` is nested inside a `plural` or `selectordinal`
 
-`split` - The target message is split by a non-argument. `plural`, `selectordinal`, and `select` cases should contain complete translations.
+`nest-order` - Nesting order does not match source
 
-`untranslated` - The target message has not been translated.
+`split` - Split by a complex argument
+
+`untranslated` - Message has not been translated

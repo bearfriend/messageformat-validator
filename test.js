@@ -12,16 +12,16 @@ Object.keys(locales).forEach(key => {
 */
 
 const locales = {
-  en: fs.readFileSync('./test/locales/json/bigfiles/en.json', 'utf8'),
-  fr: fs.readFileSync('./test/locales/json/bigfiles/fr.json', 'utf8'),
-  ar: fs.readFileSync('./test/locales/json/bigfiles/ar.json', 'utf8'),
-  es: fs.readFileSync('./test/locales/json/bigfiles/es.json', 'utf8') + String.fromCharCode(65279)
+	en: fs.readFileSync('./test/locales/json/bigfiles/en.json', 'utf8'),
+	fr: fs.readFileSync('./test/locales/json/bigfiles/fr.json', 'utf8'),
+	ar: fs.readFileSync('./test/locales/json/bigfiles/ar.json', 'utf8'),
+	es: fs.readFileSync('./test/locales/json/bigfiles/es.json', 'utf8') + String.fromCharCode(65279)
 }
 
 
 const issues = validateLocales({
-  locales,
-  sourceLocale: 'en'
+	locales,
+	sourceLocale: 'en'
 });
 
 console.log(JSON.stringify(issues, null, 2)); // eslint-disable-line no-console

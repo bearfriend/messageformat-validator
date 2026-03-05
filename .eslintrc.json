@@ -13,5 +13,8 @@
             "@babel/plugin-syntax-import-attributes"
           ]
         }
+    },
+    "rules": {
+      "indent": ["error", "tab"]
     }
 }
