@@ -31,6 +31,11 @@ Output the `myMessage` message from the `es-es` file with all messageformat stru
 mfv -l es-es -p lang/ highlight myMessage
 ```
 
+Re-write messages to a standard format, using newlines and tabs for complex arguments, and removing any plural categories that are invalid for each locale (e.g. `zero` for English, `one` for Korean)
+```shell
+mfv -s en -p lang/ format -nr
+```
+
 ### Options:
 
 `-V, --version` - output the version number
@@ -49,7 +54,7 @@ mfv -l es-es -p lang/ highlight myMessage
 
 `--json-obj` - Indicate that the files to be parsed are JSON files with keys that have objects for values with their own keys: `translation` and `context`
 
-`-h, --help` - display help for command
+`-h, --help` - Display help for command
 
 ### Subommands:
 
@@ -63,7 +68,7 @@ mfv -l es-es -p lang/ highlight myMessage
 
 `highlight <key>` - Output a message with all non-translatable ICU MessageFormat structure highlighted
 
-`help [command]` - display help for command
+`format` - Rewrite messages to a standard format
 
 ## Config File
 
@@ -116,29 +121,3 @@ Some options can be configured with default values in `mfv.config.json`
 `split` - Split by a complex argument
 
 `untranslated` - Message has not been translated
-
-
-## Overrides
-
-You can mark individual messages as
-
-`mfv override fr option`
-
-A global list of overrides is pre-loaded:
-
-v Expand Me
-
-## v3
-
-- Always throws on error. The `--throw-errors` option has been removed.
-- The `locales` option now takes an array when in the config files
-- New `format` subcommand rewrites messages to a standard format
-- Issue types renamed:
- - `case` -> `option`
- - `nest` -> `nest-source` and `nest-ideal`
- - `duplicate-keys` -> `duplicate`
- - `plural-key` -> `category`
- - `categories` -> `category-missing`
- - `source-error` -> `source`
-- New issue types
- - `option-missing`
