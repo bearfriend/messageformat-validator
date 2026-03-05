@@ -1,4 +1,4 @@
-import { parseLocales, structureRegEx, validateLocales, validateMessage } from '../src/validate.js';
+import { parseLocales, validateLocales, validateMessage } from '../src/validate.js';
 import { Reporter } from '../src/reporter.js';
 import { expect } from 'chai';
 
@@ -10,8 +10,6 @@ describe('validate', () => {
 		targetLocale = 'en-gb';
 		reporter = new Reporter(targetLocale);
 	});
-
-	describe('structureRegEx', () => {
 
 	describe('validateMessage', () => {
 
