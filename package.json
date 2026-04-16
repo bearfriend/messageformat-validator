@@ -30,7 +30,7 @@
   "author": "Danny Gleckler <daniel.gleckler@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "@formatjs/icu-messageformat-parser": "^2.7.8",
+    "@formatjs/icu-messageformat-parser": "^3.5.3",
     "chalk": "^4.1.0",
     "commander": "^12.1.0",
     "esm": "^3.2.25",
