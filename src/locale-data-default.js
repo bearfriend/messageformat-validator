@@ -8,6 +8,15 @@ export default {
 			"apostrophe": "’"
 		}
 	},
+	"ca": {
+		"delimiters": {
+			"quotationStart": "«",
+			"quotationEnd": "»",
+			"alternateQuotationStart": "“",
+			"alternateQuotationEnd": "”",
+			"apostrophe": "’"
+		}
+	},
 	"cy": {
 		"delimiters": {
 			"quotationStart": "“",
