@@ -6,7 +6,7 @@ import { env } from 'node:process';
 import { parseLocales, validateLocales } from '../src/validate.js';
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import chalk from 'chalk';
-import glob from 'glob';
+import { globSync } from 'glob';
 import pkg from '../package.json' with { type: 'json' };
 import { program, Option } from 'commander';
 import { getConfig, sortFn, structureRegEx } from '../src/utils.js';
@@ -130,7 +130,8 @@ const noSource = () => {
 };
 
 const writes = [];
-const localesPaths = glob.sync(pathCombined);
+// glob >= 9 drops the trailing slash from directory matches, but paths below are built by concatenation
+const localesPaths = globSync(pathCombined).map(p => p.replace(/\/?$/, '/')).sort((a, b) => a.localeCompare(b));
 const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 
 	const absLocalesPath = `${process.cwd()}/${localesPath}`;
