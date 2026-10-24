@@ -1,5 +1,6 @@
 import { env } from 'node:process';
 import findConfig from 'find-config';
+import { pathToFileURL } from 'node:url';
 import localeData from './locale-data.js';
 
 export function getArgs(asts, types = [1,2,3,4,5,6,8], args = []) {
@@ -16,7 +17,7 @@ export function getArgs(asts, types = [1,2,3,4,5,6,8], args = []) {
 
 export async function getConfig(cwd) {
 	const configPath = findConfig('mfv.config.json', { cwd });
-	const config = configPath ? (await import(`file://${configPath}`, { with: { type: 'json' } }))?.default ?? {} : {};
+	const config = configPath ? (await import(pathToFileURL(configPath).href, { with: { type: 'json' } }))?.default ?? {} : {};
 	config.__configPath = configPath;
 
 	if (config.locales !== undefined && !Array.isArray(config.locales)) {
