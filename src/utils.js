@@ -57,9 +57,13 @@ export const sortedCats = ['zero', 'one', 'two', 'few', 'many', 'other'];
 export const paddedQuoteLocales = ['fr', 'fr-ca', 'fr-fr', 'fr-on', 'vi-vn'];
 export const structureRegEx = /(?<=\s*)(?<!(?<!'([{<>}](?:[^']*?[{<>}])?))')(''|([{<]([^']|\n)*?[{<>}])|\s*}([^']|\n)*?[{}]|#)/g
 
-export async function getLocaleData(locale) {
-	locale = (await getConfig(env.PWD))?.localesMap?.[locale] || locale;
+export function resolveLocaleData(locale, localesMap) {
+	locale = localesMap?.[locale] || locale;
 	return (localeData[locale] ?? localeData[locale.split('-')[0]] ?? localeData['en']);
+}
+
+export async function getLocaleData(locale) {
+	return resolveLocaleData(locale, (await getConfig(env.PWD))?.localesMap);
 }
 
 export function getPluralCats(locale, pluralType) {
