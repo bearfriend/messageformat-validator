@@ -15,6 +15,31 @@ export function getArgs(asts, types = [1,2,3,4,5,6,8], args = []) {
 	return args;
 }
 
+/** The first AST node for the argument `value` of `type`, searching options and tag children. */
+export function findArgument(asts, value, type) {
+	for (const ast of asts) {
+		if (typeof ast === 'string') continue;
+		if (ast.value === value && ast.type === type && ast.location) return ast;
+		const nested = [
+			...Object.values(ast.options ?? {}).map(option => option.value),
+			ast.children ?? [],
+		];
+		for (const children of nested) {
+			const found = findArgument(children, value, type);
+			if (found) return found;
+		}
+	}
+}
+
+/** Offset in `message` of the first non-breaking space inside its structure (braces, tags, `#`), or -1. */
+export function findStructureNbsp(message) {
+	for (const match of message.matchAll(structureRegEx)) {
+		const at = match[0].indexOf('\u00a0');
+		if (at !== -1) return match.index + at;
+	}
+	return -1;
+}
+
 export async function getConfig(cwd) {
 	const configPath = findConfig('mfv.config.json', { cwd });
 	const config = configPath ? (await import(pathToFileURL(configPath).href, { with: { type: 'json' } }))?.default ?? {} : {};

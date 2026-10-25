@@ -1,4 +1,4 @@
-import { formatList, getArgs, getPluralCats, sortedCats, structureRegEx } from './utils.js';
+import { findArgument, findStructureNbsp, formatList, getArgs, getPluralCats, sortedCats, structureRegEx } from './utils.js';
 import { Reporter } from './reporter.js';
 import { parse } from '@formatjs/icu-messageformat-parser';
 
@@ -68,16 +68,28 @@ function checkNbsp(message, reporter) {
 	const nbspPos = structure.indexOf(String.fromCharCode(160));
 
 	if (nbspPos > -1) {
-		reporter.error('nbsp', `Message structure contains non-breaking space at position ${nbspPos}`, { column: nbspPos });
+		reporter.error('nbsp', `Message structure contains non-breaking space at position ${nbspPos}`, { column: nbspPos, offset: findStructureNbsp(message), length: 1 });
 		return true;
 	}
 }
 
+// Where in the message a parser error sits, for editors: `offset` and `length` are relative to the message.
+const spanOf = (location) => ({ offset: location.start.offset, length: Math.max(location.end.offset - location.start.offset, 1) });
+
+/**
+ * Pass `sourceMessage: undefined` to check a message on its own: the comparison checks
+ * (untranslated, argument, option, option-missing, nest-order, split) are skipped and the
+ * rest (syntax, braces, other, category, category-missing, nbsp, nest-ideal) still run.
+ * Issue details carry `offset` and `length` (relative to the message) alongside `column` where known.
+ */
 export function validateMessage({ targetMessage, targetLocale, sourceMessage, sourceLocale, overrides }, msgReporter = reporter) {
 
   const re = /[\u2000-\u206F\u2E00-\u2E7F\n\r\\'!"#$%&()*+,\-.\/∕:;<=>?@\[\]^_`{|}~]/g; // eslint-disable-line
 
-	if (sourceLocale
+	const hasSource = sourceMessage !== undefined;
+
+	if (hasSource
+		&& sourceLocale
 		&& targetLocale.split('-')[0] !== sourceLocale.split('-')[0]
 		&& targetMessage.replace(re,'') === sourceMessage.replace(re,'')) {
 
@@ -97,15 +109,15 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 	}
 	catch(e) {
 		if ((targetMessage.match(/{/g) || 0).length !== (targetMessage.match(/}/g) || 0).length) {
-			msgReporter.error('brace', 'Mismatched braces', { column: e.location.start.column });
+			msgReporter.error('brace', 'Mismatched braces', { column: e.location.start.column, ...spanOf(e.location) });
 		}
 		else if (!checkNbsp(targetMessage, msgReporter)) {
 			if (e.message === 'EXPECT_SELECT_ARGUMENT_OPTIONS') {
-				msgReporter.error('parse', `Expected "," but "${e.originalMessage.substr(e.location.start.column, 1)}" found`, { column: e.location.start.column - 1 });
+				msgReporter.error('parse', `Expected "," but "${e.originalMessage.substr(e.location.start.column, 1)}" found`, { column: e.location.start.column - 1, ...spanOf(e.location) });
 			}
 			else {
 				const near = `at or near: ${targetMessage.slice(e.location.start.offset, Math.max(e.location.end.offset, e.location.start.offset + 4))}`;
-				msgReporter.error('parse', `${e.message} ${near}`, { column: e.location.start.column - 1 });
+				msgReporter.error('parse', `${e.message} ${near}`, { column: e.location.start.column - 1, ...spanOf(e.location) });
 			}
 		}
 	}
@@ -115,12 +127,14 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 		const targetTokens = parsedTarget;
 		let sourceTokens;
 
-		try {
-			sourceTokens = parse(sourceMessage, { requiresOtherClause: false });
-		}
-		catch(e) {
-			msgReporter.error('source', 'Failed to parse source message');
-			return;
+		if (hasSource) {
+			try {
+				sourceTokens = parse(sourceMessage, { requiresOtherClause: false });
+			}
+			catch(e) {
+				msgReporter.error('source', 'Failed to parse source message');
+				return;
+			}
 		}
 
 		const checkCases = (target, msg) => {
@@ -148,7 +162,8 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 
 						unsupportedCats.forEach(cat => {
 							const column = part.options[cat].location.start.offset;
-							msgReporter.error('category', `Unsupported category "${cat}". Locale supports "${supportedCats.join('", "')}", and explicit keys like "=0".`, { column });
+							const offset = msg.lastIndexOf(cat, column);
+							msgReporter.error('category', `Unsupported category "${cat}". Locale supports "${supportedCats.join('", "')}", and explicit keys like "=0".`, { column, ...(offset === -1 ? {} : { offset, length: cat.length }) });
 						});
 					}
 
@@ -162,39 +177,45 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 		checkCases(parsedTarget, targetMessage);
 
 		const targetMap = _map(targetTokens);
-		const sourceMap = _map(sourceTokens);
 
-		const srcArgs = new Set(getArgs(sourceTokens).map(e => e.join('')));
-		const tgtArgs = new Set(getArgs(targetTokens).map(e => e.join('')));
+		if (sourceTokens) {
+			const srcArgs = new Set(getArgs(sourceTokens).map(e => e.join('')));
+			const tgtArgs = new Set(getArgs(targetTokens).map(e => e.join('')));
 
-		const argDiff = Array.from(tgtArgs).filter(arg => !Array.from(srcArgs).includes(arg));
+			const argDiff = Array.from(tgtArgs).filter(arg => !Array.from(srcArgs).includes(arg));
 
-		const badArgPos = targetMessage.indexOf(argDiff[0]);
-		if (argDiff.length) {
-			msgReporter.error('argument', `Unrecognized ${argDiff.length === 1 ? 'argument' : 'arguments'} ${formatList(argDiff.map(i => `"${i.slice(0, -1)}"`))}. Source message uses ${formatList([...new Set([...srcArgs].map(a => a.slice(0, -1)))].map(i => `"${i}"`))}.`, { column: badArgPos });
+			const badArgPos = targetMessage.indexOf(argDiff[0]);
+			if (argDiff.length) {
+				const firstBad = findArgument(targetTokens, argDiff[0].slice(0, -1), Number(argDiff[0].slice(-1)));
+				msgReporter.error('argument', `Unrecognized ${argDiff.length === 1 ? 'argument' : 'arguments'} ${formatList(argDiff.map(i => `"${i.slice(0, -1)}"`))}. Source message uses ${formatList([...new Set([...srcArgs].map(a => a.slice(0, -1)))].map(i => `"${i}"`))}.`, { column: badArgPos, ...(firstBad ? spanOf(firstBad.location) : {}) });
+			}
 		}
 
 		checkNbsp(targetMessage, msgReporter);
 
-		if (targetMap.cases.join(',') !== sourceMap.cases.join(',')) {
+		if (sourceTokens) {
+			const sourceMap = _map(sourceTokens);
 
-			const cleanTargetCases = targetMap.cases.map(c => c.replace(/.+(?<=\|(6(ordinal|cardinal))\|).*/, ''));
-			const cleanSourceCases = sourceMap.cases.map(c => c.replace(/.+(?<=\|(6(ordinal|cardinal))\|).*/, ''));
+			if (targetMap.cases.join(',') !== sourceMap.cases.join(',')) {
 
-			const extraOptions = cleanTargetCases.filter(arg => !cleanSourceCases.includes(arg));
-			extraOptions.forEach(o => {
-				msgReporter.error('option', `Unrecognized option "${o.replace(/.+\|5undefined\|/, '')}". Argument uses ${formatList(cleanSourceCases.map(o => `"${o.replace(/.+\|5undefined\|/, '')}"`))}.`);
-			});
+				const cleanTargetCases = targetMap.cases.map(c => c.replace(/.+(?<=\|(6(ordinal|cardinal))\|).*/, ''));
+				const cleanSourceCases = sourceMap.cases.map(c => c.replace(/.+(?<=\|(6(ordinal|cardinal))\|).*/, ''));
 
-			const missingOptions = cleanSourceCases.filter(arg => !cleanTargetCases.includes(arg));
-			missingOptions.forEach(o => {
-				o = o.replace(/.+\|5undefined\|/, '');
-				o !== 'other' && msgReporter.error('option-missing', `Missing option "${o}"`);
-			});
+				const extraOptions = cleanTargetCases.filter(arg => !cleanSourceCases.includes(arg));
+				extraOptions.forEach(o => {
+					msgReporter.error('option', `Unrecognized option "${o.replace(/.+\|5undefined\|/, '')}". Argument uses ${formatList(cleanSourceCases.map(o => `"${o.replace(/.+\|5undefined\|/, '')}"`))}.`);
+				});
 
-			if (targetMap.nested && targetMap.cases.length === sourceMap.cases.length) {
-				// TODO: better identify case order vs nesting order
-				msgReporter.warning('nest-order', 'Nesting order does not match source');
+				const missingOptions = cleanSourceCases.filter(arg => !cleanTargetCases.includes(arg));
+				missingOptions.forEach(o => {
+					o = o.replace(/.+\|5undefined\|/, '');
+					o !== 'other' && msgReporter.error('option-missing', `Missing option "${o}"`);
+				});
+
+				if (targetMap.nested && targetMap.cases.length === sourceMap.cases.length) {
+					// TODO: better identify case order vs nesting order
+					msgReporter.warning('nest-order', 'Nesting order does not match source');
+				}
 			}
 		}
 
@@ -205,7 +226,7 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 			msgReporter.warning('nest-ideal', '"plural" and "selectordinal" should always nest inside "select"');
 		}
 
-		if (targetTokens.length > 1) {
+		if (sourceTokens && targetTokens.length > 1) {
 			if (targetLocale == sourceLocale && targetTokens.find((token) => typeof token !== 'string' && [PLURAL, SELECT].includes(token.type))) {
 				msgReporter.warning('split','Message split by complex argument')
 			}
