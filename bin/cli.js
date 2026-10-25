@@ -11,7 +11,7 @@ import pkg from '../package.json' with { type: 'json' };
 import { program, Option } from 'commander';
 import { getConfig, sortFn, structureRegEx } from '../src/utils.js';
 
-let formatMessage, commandOpts;
+let formatMessage, commandOpts, essentialOpts;
 const programArgs = {};
 
 const {
@@ -87,12 +87,28 @@ program
 	.option('-d, --dedupe', 'Remove complex argument cases that duplicate the `other` case. Takes precedence over --add.')
 	.option('-t, --trim', 'Trim whitespace from both ends of messages. Disables selector hoisting.')
 	.option('-c, --correct', 'Attempt to correct argument names. A source locale must be provided.')
-	.addOption(new Option('--no-hoist', 'Do not hoist selectors').hideHelp())
+	// Hidden. The default rewrites ("essentials"), each switchable on or off; `--no-essentials` turns them all off unless given.
+	.addOption(new Option('--essentials').hideHelp())
+	.addOption(new Option('--no-essentials').hideHelp())
+	.addOption(new Option('--hoist').hideHelp())
+	.addOption(new Option('--no-hoist').hideHelp())
+	.addOption(new Option('--apostrophes').hideHelp())
+	.addOption(new Option('--no-apostrophes').hideHelp())
+	.addOption(new Option('--normalize-one').hideHelp())
+	.addOption(new Option('--no-normalize-one').hideHelp())
+	.addOption(new Option('--rename-categories').hideHelp())
+	.addOption(new Option('--no-rename-categories').hideHelp())
+	.addOption(new Option('--sort').hideHelp())
+	.addOption(new Option('--no-sort').hideHelp())
 	.addOption(new Option('-q, --quotes <type>', 'Replace quote characters with locale-appropriate characters').choices(['source', 'straight', 'both']))
 	.action(async function() {
 		formatMessage = (await import('../src/format.js')).formatMessage;
 		program.format = true;
 		commandOpts = this.opts();
+		// Each has both a positive and a negative form, so none default to `true`; only the ones given are passed on.
+		essentialOpts = Object.fromEntries(
+			['essentials', 'hoist', 'apostrophes', 'normalizeOne', 'renameCategories', 'sort'].map(name => [name, commandOpts[name]])
+		);
 		/*
 		program.newlines = opts.newlines;
 		program.add = opts.add;
@@ -249,7 +265,7 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 							collapse: commandOpts.collapse,
 							quotes: commandOpts.quotes,
 							expandHashes: true,
-							hoist: commandOpts.hoist,
+							...essentialOpts,
 
 							baseTabs: baseTabs.length + (commandOpts.newlines ? 1 : 0),
 							key: t.key,

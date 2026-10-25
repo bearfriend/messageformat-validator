@@ -1,6 +1,7 @@
 import { hoistSelectors } from '@formatjs/icu-messageformat-parser/manipulator.js';
 import { parse } from '@formatjs/icu-messageformat-parser';
-import { getArgs, getLocaleData, getPluralCats, paddedQuoteLocales, sortedCats, structureRegEx } from './utils.js';
+import { env } from 'node:process';
+import { getArgs, getConfig, getPluralCats, paddedQuoteLocales, resolveLocaleData, sortedCats, structureRegEx } from './utils.js';
 
 function expandASTHashes(ast, parentValue) {
 	if (Array.isArray(ast)) {
@@ -20,7 +21,26 @@ function mfEscape(msg) {
 	return msg.replace(/'([{}](?:.*?[{}])?)'/gsu, "'''$1'''");
 }
 
-export async function formatMessage(msg, options = {}) {
+/**
+ * Formats a message without side effects: nothing is logged, nothing reads the working directory or config,
+ * and nothing exits the process. Problems come back in the result instead.
+ *
+ * If the message cannot be parsed, `message` is the input, unchanged. `error` is the parse error, and `errorText`
+ * is the text its `location` offsets refer to (the input after quote escaping, which can differ from the input).
+ *
+ * The default rewrites ("essentials") can be switched off individually (`apostrophes`, `hoist`, `normalizeOne`,
+ * `renameCategories`, `sort`), or all together with `essentials: false`, in which case an individual option set
+ * to `true` switches that one back on.
+ *
+ * @param {string} msg
+ * @param {object} [options] see `formatMessage`; `localesMap` replaces the `mfv.config.json` setting of the same name
+ * @returns {{ message: string, error?: Error, errorText?: string, warnings: string[] }}
+ */
+export function formatMessageSync(msg, options = {}) {
+	const warnings = [];
+	const warn = warning => warnings.push(warning);
+	const essential = name => options[name] ?? options.essentials ?? true;
+	const input = msg;
 	let ast;
 
 	try {
@@ -31,46 +51,35 @@ export async function formatMessage(msg, options = {}) {
 			const alteredMsg = msg.replace('\'{', '’{');
 			ast = parse(alteredMsg, { requiresOtherClause: false });
 			msg = alteredMsg;
-		} catch(err2) {
-			if (err.location) {
-				console.log(`\nERROR: ${err.message}`);
-				console.log(`\tLocale: ${options.locale}`);
-				console.log(`\tKey: ${options.key}`);
-				console.log(`\tOriginal message: ${err.originalMessage}`);
-				console.log('\tAt or near:', msg.slice(err.location.start.offset, Math.max(err.location.end.offset, err.location.start.offset + 4)));
-			} else {
-				console.log(err);
-				console.log(`\tLocale: ${options.locale}`);
-				console.log(`\tKey: ${options.key}`);
-			}
-			return msg;
+		} catch {
+			return { message: input, error: err, errorText: msg, warnings };
 		}
 	}
 	if (options.expandHashes) {
 		expandASTHashes(ast);
 	}
 
-	if ((options.hoist ?? true) && !options.trim) {
+	if (essential('hoist') && !options.trim) {
 		try {
 			ast = hoistSelectors(ast);
 		} catch(e) {
-			console.log(e);
+			warn(`Could not hoist selectors: ${e?.message ?? e}`);
 		}
 	}
 
-	const localeData = { [options.locale]: await getLocaleData(options.locale) };
-	if (options.sourceLocale) localeData[options.sourceLocale] = await getLocaleData(options.sourceLocale);
+	const localeData = { [options.locale]: resolveLocaleData(options.locale, options.localesMap) };
+	if (options.sourceLocale) localeData[options.sourceLocale] = resolveLocaleData(options.sourceLocale, options.localesMap);
 
 	let args = [];
 	if (options.source) {
 		try {
 			args = getArgs(parse(options.source, { requiresOtherClause: false }));
-		} catch(e) {
-			console.warn('WARN Source error:', options.key);
+		} catch {
+			warn(`WARN Source error: ${options.key}`);
 		}
 	}
 
-	return printAST(ast, {
+	const message = printAST(ast, {
 		useNewlines: options.newlines ?? msg.match(structureRegEx)?.join('').includes('\n'),
 		add: options.add ?? false,
 		remove: options.remove ?? false,
@@ -81,8 +90,42 @@ export async function formatMessage(msg, options = {}) {
 		locale: options.locale,
 		sourceLocale: options.sourceLocale,
 		localeData,
-		args
+		args,
+		warn,
+
+		apostrophes: essential('apostrophes'),
+		normalizeOne: essential('normalizeOne'),
+		renameCategories: essential('renameCategories'),
+		sort: essential('sort'),
 	}, options.baseTabs);
+
+	return { message, warnings };
+}
+
+/**
+ * Formats a message, logging any problems to the console. Use `formatMessageSync` to get them as data instead.
+ * Locale data is chosen using `options.localesMap`, or else the `localesMap` in the `mfv.config.json` found from `$PWD`.
+ */
+export async function formatMessage(msg, options = {}) {
+	const localesMap = options.localesMap ?? (await getConfig(env.PWD))?.localesMap;
+	const { message, error, errorText, warnings } = formatMessageSync(msg, { ...options, localesMap });
+
+	if (error) {
+		if (error.location) {
+			console.log(`\nERROR: ${error.message}`);
+			console.log(`\tLocale: ${options.locale}`);
+			console.log(`\tKey: ${options.key}`);
+			console.log(`\tOriginal message: ${error.originalMessage}`);
+			console.log('\tAt or near:', errorText.slice(error.location.start.offset, Math.max(error.location.end.offset, error.location.start.offset + 4)));
+		} else {
+			console.log(error);
+			console.log(`\tLocale: ${options.locale}`);
+			console.log(`\tKey: ${options.key}`);
+		}
+	}
+	warnings.forEach(warning => console.warn(warning));
+
+	return message;
 }
 
 function normalizeArgName(name, type, availableArgs) {
@@ -121,6 +164,11 @@ function printAST(ast, options, level = 0, parentValue) {
 		trim = false,
 		args = [],
 		localeData,
+		warn = () => {},
+		apostrophes = true,
+		normalizeOne = true,
+		renameCategories = true,
+		sort = true,
 	} = options;
 
 	const localeLower = locale.toLowerCase();
@@ -244,7 +292,7 @@ function printAST(ast, options, level = 0, parentValue) {
 				/* eslint-enable no-useless-escape */
 			}
 		}
-		if (!quotes && localeData?.[locale]) {
+		if (apostrophes && !quotes && localeData?.[locale]) {
 			const { delimiters } = localeData[locale];
 			const apostrophe = delimiters.apostrophe ?? '\u2019';
 			msg = msg.replace(/'/g, apostrophe);
@@ -284,10 +332,9 @@ function printAST(ast, options, level = 0, parentValue) {
 	else if (type === 5) { // select
 
 		const argName = normalizeArgName(ast.value, type, args);
-		const optionsText = Object.entries(ast.options)
-			.sort((a, b) => {
-				return a[0] === 'other' ? 1 : (b[0] === 'other' ? -1 : 0);
-			})
+		const selectEntries = Object.entries(ast.options);
+		if (sort) selectEntries.sort((a, b) => a[0] === 'other' ? 1 : (b[0] === 'other' ? -1 : 0));
+		const optionsText = selectEntries
 			.map(([opt, { value }]) => {
 				return `${newline}${useNewlines ? '\t' : ''}${opt} {${printAST(value, { ...options, args }, level + 1)}}`;
 			}).join('') + (useNewlines ? newline : '');
@@ -296,6 +343,8 @@ function printAST(ast, options, level = 0, parentValue) {
 	}
 	else if (type === 6) { // plural, selectordinal
 		const supportedCats = getPluralCats(locale, ast.pluralType);
+		// Printing is also how options are compared, and printing mutates the AST, so comparisons must follow the same rules.
+		const compareOptions = { locale, args, warn, normalizeOne, renameCategories, sort };
 		const unsupportedCats = [ ...Object.keys(ast.options).filter(o => !/^=\d+$/.test(o)) , ...sortedCats].filter(cat => !supportedCats.includes(cat));
 		if (add) {
 			supportedCats.forEach(cat => {
@@ -306,7 +355,7 @@ function printAST(ast, options, level = 0, parentValue) {
 			});
 		}
 
-		if (ast.options['=1'] && !ast.offset) {
+		if (normalizeOne && ast.options['=1'] && !ast.offset) {
 			if (ast.options['=1'].value.filter(o => o.type === 0).map(o => o.value).join('').includes('1')) { // TODO: recursively check actual options
 				// `=1` exists with literal "1" text
 				ast.options.one = ast.options['=1'];
@@ -315,7 +364,7 @@ function printAST(ast, options, level = 0, parentValue) {
 			} else if (locale === sourceLocale && locale.startsWith('en')) {
 				// `=1` exists with basic Englished pluralization differences
 				const enBasicPluralsRegEx = /e|s|es(?=\s|$|\p{P})/gv;
-				if (printAST(ast.options.other.value, { locale, args }).replace(enBasicPluralsRegEx, '') === printAST(ast.options['=1'].value, { locale, args }).replace(enBasicPluralsRegEx, '')) {
+				if (printAST(ast.options.other.value, compareOptions).replace(enBasicPluralsRegEx, '') === printAST(ast.options['=1'].value, compareOptions).replace(enBasicPluralsRegEx, '')) {
 					ast.options.one = ast.options['=1'];
 					delete ast.options['=1'];
 					swapOne.add(ast.value);
@@ -323,7 +372,7 @@ function printAST(ast, options, level = 0, parentValue) {
 			}
 		}
 
-		if (ast.options.one && !ast.offset) {
+		if (normalizeOne && ast.options.one && !ast.offset) {
 			// `one` and `=1` are the same
 			if (ast.options['=1'] && JSON.stringify(ast.options['=1']) === JSON.stringify(ast.options['one'])) {
 				delete ast.options['=1'];
@@ -331,9 +380,9 @@ function printAST(ast, options, level = 0, parentValue) {
 		}
 
 		if (dedupe && ast.options.other) {
-			const otherPrinted = printAST(ast.options.other.value, { locale, args });
+			const otherPrinted = printAST(ast.options.other.value, compareOptions);
 			Object.entries(ast.options).forEach(([k, v]) => {
-				if (k !== 'other' && printAST(v.value, { locale, swapOne, args }) === otherPrinted) {
+				if (k !== 'other' && printAST(v.value, { ...compareOptions, swapOne }) === otherPrinted) {
 					delete ast.options[k];
 				}
 			});
@@ -342,7 +391,7 @@ function printAST(ast, options, level = 0, parentValue) {
 		// replace a bad category if possible
 		const usedCats = Object.keys(ast.options);
 		const unusedCats = supportedCats.filter(c => !usedCats.includes(c));
-		if (unusedCats.length === 1) {
+		if (renameCategories && unusedCats.length === 1) {
 			const unrecognizedCats = usedCats.filter(c => !/^=\d+$/.test(c) && !supportedCats.includes(c));
 			if (unrecognizedCats.length === 1) {
 				ast.options[unusedCats[0]] = ast.options[unrecognizedCats[0]];
@@ -364,12 +413,16 @@ function printAST(ast, options, level = 0, parentValue) {
 
 		const typeText = ast.pluralType === 'ordinal' ? 'selectordinal' : 'plural';
 		const offsetText = + ast.offset !== 0 ? ` offset:${ast.offset}` : '';
-		const optionsText = Object.entries(ast.options).sort((a, b) => {
-			if (a[0].startsWith('=') || b[0].startsWith('=')) {
-				return a[0].localeCompare(b[0]);
-			}
-			return sortedCats.indexOf(a[0]) > sortedCats.indexOf(b[0]) ? 1 : -1;
-		}).map(([opt, { value }]) => {
+		const pluralEntries = Object.entries(ast.options);
+		if (sort) {
+			pluralEntries.sort((a, b) => {
+				if (a[0].startsWith('=') || b[0].startsWith('=')) {
+					return a[0].localeCompare(b[0]);
+				}
+				return sortedCats.indexOf(a[0]) > sortedCats.indexOf(b[0]) ? 1 : -1;
+			});
+		}
+		const optionsText = pluralEntries.map(([opt, { value }]) => {
 			return `${newline}${useNewlines ? '\t' : ''}${opt} {${printAST(value, { ...options, swapOne, args: [...args] }, level + 1, ast.value)}}`;
 		}).join('') + (useNewlines ? newline : '');
 
@@ -382,7 +435,7 @@ function printAST(ast, options, level = 0, parentValue) {
 		text += `<${normalizeArgName(ast.value, type, args)}>${printAST(ast.children, options, level + 1)}</${normalizeArgName(ast.value, type, args)}>`;
 	}
 	else { // unhandled
-		console.warn('unhandled type:', type);
+		warn(`unhandled type: ${type}`);
 	}
 
 	return text;
