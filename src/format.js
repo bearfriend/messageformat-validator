@@ -1,7 +1,7 @@
 import { hoistSelectors } from '@formatjs/icu-messageformat-parser/manipulator.js';
 import { parse } from '@formatjs/icu-messageformat-parser';
 import { env } from 'node:process';
-import { getArgs, getConfig, getPluralCats, paddedQuoteLocales, resolveLocaleData, sortedCats, structureRegEx } from './utils.js';
+import { getArgs, getConfig, getSelectOptions, getPluralCats, paddedQuoteLocales, resolveLocaleData, sortedCats, structureRegEx } from './utils.js';
 
 function expandASTHashes(ast, parentValue) {
 	if (Array.isArray(ast)) {
@@ -17,8 +17,20 @@ function expandASTHashes(ast, parentValue) {
 	}
 }
 
+// Stands for a `'` that quotes text. Kept as a marker until the whole message is printed, so nothing in between
+// (curling apostrophes, doubling the literal ones) mistakes it for an apostrophe in the text.
+const ESCAPE = '|_escape_|';
+const ESCAPE_REGEX = /\|_escape_\|/g;
+
+// Quoted braces, as the user wrote them: `'{'`, `'{x}'`. The quotes stay in the text (see `mfEscape`) so they can be printed as written.
+const QUOTED_BRACES = "'([{}](?:[^']*?[{}])?)'";
+
+// Either those, or a stretch of text from its first literal brace (or `#`, in a plural) to its last, plus any apostrophes
+// right after it. That is text the parser took from an unterminated or oddly-ended quote, and it has to be quoted again.
+const textRegex = parentValue => new RegExp(`${QUOTED_BRACES}|([${parentValue ? '{}#' : '{}'}](?:.*[${parentValue ? '{}#' : '{}'}])?'*)`, 'gsu');
+
 function mfEscape(msg) {
-	return msg.replace(/'([{}](?:.*?[{}])?)'/gsu, "'''$1'''");
+	return msg.replace(new RegExp(QUOTED_BRACES, 'gsu'), "'''$1'''");
 }
 
 /**
@@ -27,6 +39,9 @@ function mfEscape(msg) {
  *
  * If the message cannot be parsed, `message` is the input, unchanged. `error` is the parse error, and `errorText`
  * is the text its `location` offsets refer to (the input after quote escaping, which can differ from the input).
+ *
+ * With `source` (the source locale's message), `add` also adds the select options that message has and this one lacks,
+ * and argument names are corrected to match it, unless `correct` is `false`.
  *
  * The default rewrites ("essentials") can be switched off individually (`apostrophes`, `hoist`, `normalizeOne`,
  * `renameCategories`, `sort`), or all together with `essentials: false`, in which case an individual option set
@@ -71,15 +86,18 @@ export function formatMessageSync(msg, options = {}) {
 	if (options.sourceLocale) localeData[options.sourceLocale] = resolveLocaleData(options.sourceLocale, options.localesMap);
 
 	let args = [];
+	let sourceSelects = new Map();
 	if (options.source) {
 		try {
-			args = getArgs(parse(options.source, { requiresOtherClause: false }));
+			const sourceAST = parse(options.source, { requiresOtherClause: false });
+			if (options.correct ?? true) args = getArgs(sourceAST);
+			if (options.add) sourceSelects = getSelectOptions(sourceAST);
 		} catch {
 			warn(`WARN Source error: ${options.key}`);
 		}
 	}
 
-	const message = printAST(ast, {
+	const printed = printAST(ast, {
 		useNewlines: options.newlines ?? msg.match(structureRegEx)?.join('').includes('\n'),
 		add: options.add ?? false,
 		remove: options.remove ?? false,
@@ -91,6 +109,7 @@ export function formatMessageSync(msg, options = {}) {
 		sourceLocale: options.sourceLocale,
 		localeData,
 		args,
+		sourceSelects,
 		warn,
 
 		apostrophes: essential('apostrophes'),
@@ -98,6 +117,10 @@ export function formatMessageSync(msg, options = {}) {
 		renameCategories: essential('renameCategories'),
 		sort: essential('sort'),
 	}, options.baseTabs);
+
+	// A literal apostrophe before something that would start a quote (`{`, `}`, `<`, `>`, `#`, another apostrophe),
+	// or before the quotes this adds, has to be doubled to stay one. Quote replacement (`quotes`) handles its own.
+	const message = (options.quotes ? printed : printed.replace(/'(?=['{}<>#]|\|_escape_\|)/g, "''")).replace(ESCAPE_REGEX, "'");
 
 	return { message, warnings };
 }
@@ -163,6 +186,7 @@ function printAST(ast, options, level = 0, parentValue) {
 		dedupe = false,
 		trim = false,
 		args = [],
+		sourceSelects = new Map(),
 		localeData,
 		warn = () => {},
 		apostrophes = true,
@@ -194,7 +218,8 @@ function printAST(ast, options, level = 0, parentValue) {
 					swapOne: swapOneClone,
 					trim
 				},
-				level);
+				level,
+				parentValue);
 			}).join('');
 
 		if (quotes) {
@@ -297,7 +322,7 @@ function printAST(ast, options, level = 0, parentValue) {
 			const apostrophe = delimiters.apostrophe ?? '\u2019';
 			msg = msg.replace(/'/g, apostrophe);
 		}
-		return msg.replace(/\|_escape_\|/g, "'");
+		return quotes ? msg.replace(ESCAPE_REGEX, "'") : msg;
 	}
 
 	let text = '';
@@ -307,8 +332,9 @@ function printAST(ast, options, level = 0, parentValue) {
 
 	if (type === 0) { // straight text
 		let escaped = ast.value;
-		escaped = escaped.replace(/'([{}](?:.*[{}])?)'/gsu, "|_escape_|$1|_escape_|");
-		escaped = parentValue ? escaped.replace("'#'", "|_escape_|#|_escape_|") : escaped;
+		escaped = escaped.replace(textRegex(parentValue), (match, quoted, stretch) => quoted === undefined
+			? `${ESCAPE}${stretch.replace(/'/g, ESCAPE + ESCAPE)}${ESCAPE}` // `''` is an apostrophe inside a quote, too
+			: `${ESCAPE}${quoted}${ESCAPE}`);
 
 		escaped = swapOne.size ? escaped.replace(/1/g, `{${[...swapOne].join('|')}}`) : escaped;
 		text += escaped[trim]?.() ?? escaped;
@@ -320,7 +346,7 @@ function printAST(ast, options, level = 0, parentValue) {
 		const style = (() => {
 			if (ast.style) {
 				if (typeof ast.style === 'string') return `, ${ast.style}`;
-				else return `, ::${ast.style.pattern || ast.style.tokens.map(t => t.stem).join(' ')}`;
+				else return `, ::${ast.style.pattern || ast.style.tokens.map(t => [t.stem, ...t.options].join('/')).join(' ')}`;
 			} else {
 				return '';
 			}
@@ -332,6 +358,15 @@ function printAST(ast, options, level = 0, parentValue) {
 	else if (type === 5) { // select
 
 		const argName = normalizeArgName(ast.value, type, args);
+		if (add) {
+			// the same case plural categories copy: `other` if there is one, otherwise the last
+			const copied = ast.options.other ?? Object.values(ast.options).at(-1);
+			if (copied) {
+				[...(sourceSelects.get(argName) ?? []), 'other'].forEach(key => {
+					if (!Object.hasOwn(ast.options, key)) ast.options[key] = { ...copied };
+				});
+			}
+		}
 		const selectEntries = Object.entries(ast.options);
 		if (sort) selectEntries.sort((a, b) => a[0] === 'other' ? 1 : (b[0] === 'other' ? -1 : 0));
 		const optionsText = selectEntries
@@ -432,7 +467,7 @@ function printAST(ast, options, level = 0, parentValue) {
 		text += '#';
 	}
 	else if (type === 8) { // tag
-		text += `<${normalizeArgName(ast.value, type, args)}>${printAST(ast.children, options, level + 1)}</${normalizeArgName(ast.value, type, args)}>`;
+		text += `<${normalizeArgName(ast.value, type, args)}>${printAST(ast.children, options, level + 1, parentValue)}</${normalizeArgName(ast.value, type, args)}>`;
 	}
 	else { // unhandled
 		warn(`unhandled type: ${type}`);

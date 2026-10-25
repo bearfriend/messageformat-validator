@@ -82,8 +82,8 @@ program
 	.command('format')
 	.description('Rewrite messages to a standard format')
 	.option('-n, --newlines', 'When formatting complex arguments, use newlines and indentation for readability')
-	.option('-a, --add', 'Add cases for missing supported pural and selectordinal categories')
-	.option('-r, --remove', 'Remove cases for unsupported pural and selectordinal categories')
+	.option('-a, --add', 'Add any supported plural/selectordinal categories or required select options that are missing')
+	.option('-r, --remove', 'Remove cases for unsupported plural and selectordinal categories')
 	.option('-d, --dedupe', 'Remove complex argument cases that duplicate the `other` case. Takes precedence over --add.')
 	.option('-t, --trim', 'Trim whitespace from both ends of messages. Disables selector hoisting.')
 	.option('-c, --correct', 'Attempt to correct argument names. A source locale must be provided.')
@@ -246,7 +246,7 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 				let localeContents = locales[locale].contents;
 				await Promise.all(Object.values(locales[locale].parsed).map(async t => {
 
-					const source = commandOpts.correct ? sourceLocaleParsed[t.key] : null;
+					const source = commandOpts.correct || commandOpts.add ? sourceLocaleParsed[t.key] : null;
 
 					if (localeContents.includes(t)) {
 						const baseTabs = t.valSpace.includes('\n') && !commandOpts.newlines
@@ -270,6 +270,7 @@ const results = await Promise.all(localesPaths.map(async (localesPath, idx) => {
 							baseTabs: baseTabs.length + (commandOpts.newlines ? 1 : 0),
 							key: t.key,
 							source,
+							correct: !!commandOpts.correct,
 							target: t
 						});
 						const valQuote = commandOpts.newlines && newVal.includes('\n') ? '`' : t.valQuote;

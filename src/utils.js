@@ -15,6 +15,20 @@ export function getArgs(asts, types = [1,2,3,4,5,6,8], args = []) {
 	return args;
 }
 
+/** The option names of every `select` in `asts`, by argument name, in the order they first appear. */
+export function getSelectOptions(asts, found = new Map()) {
+	asts.forEach(ast => {
+		if (ast.type === 5) {
+			const keys = found.get(ast.value) ?? [];
+			Object.keys(ast.options).forEach(key => keys.includes(key) || keys.push(key));
+			found.set(ast.value, keys);
+		}
+		if (ast.options) Object.values(ast.options).forEach(({ value }) => getSelectOptions(value, found));
+		if (ast.children) getSelectOptions(ast.children, found);
+	});
+	return found;
+}
+
 /** The first AST node for the argument `value` of `type`, searching options and tag children. */
 export function findArgument(asts, value, type) {
 	for (const ast of asts) {
