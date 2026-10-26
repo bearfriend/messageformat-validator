@@ -1,4 +1,4 @@
-import { findArgument, findStructureNbsp, formatList, getArgs, getPluralCats, sortedCats, structureRegEx } from './utils.js';
+import { findArgument, findStructureNbsp, findUnterminatedEscapeRuns, formatList, getArgs, getPluralCats, sortedCats, structureRegEx } from './utils.js';
 import { Reporter } from './reporter.js';
 import { parse } from '@formatjs/icu-messageformat-parser';
 
@@ -101,6 +101,11 @@ export function validateMessage({ targetMessage, targetLocale, sourceMessage, so
 
 			msgReporter.warning('untranslated', 'Message has not been translated');
 		}
+	}
+
+	// Reported even when it is also why the message does not parse, as that is the cause the author needs to fix.
+	for (const { start } of findUnterminatedEscapeRuns(targetMessage)) {
+		msgReporter.warning('escape', `Unterminated escape run before "${targetMessage.slice(start + 1, start + 3)}". Close it with another "'".`, { column: start, offset: start, length: 1 });
 	}
 
 	let parsedTarget;

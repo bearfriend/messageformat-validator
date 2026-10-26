@@ -1,7 +1,7 @@
 import { hoistSelectors } from '@formatjs/icu-messageformat-parser/manipulator.js';
 import { parse } from '@formatjs/icu-messageformat-parser';
 import { env } from 'node:process';
-import { getArgs, getConfig, getSelectOptions, getPluralCats, paddedQuoteLocales, resolveLocaleData, sortedCats, structureRegEx } from './utils.js';
+import { findUnterminatedEscapeRuns, getArgs, getConfig, getSelectOptions, getPluralCats, paddedQuoteLocales, resolveLocaleData, sortedCats, structureRegEx } from './utils.js';
 
 function expandASTHashes(ast, parentValue) {
 	if (Array.isArray(ast)) {
@@ -21,13 +21,43 @@ function expandASTHashes(ast, parentValue) {
 // (curling apostrophes, doubling the literal ones) mistakes it for an apostrophe in the text.
 const ESCAPE = '|_escape_|';
 const ESCAPE_REGEX = /\|_escape_\|/g;
+// Stands for the `#` placeholder of a plural, so it can be told from a `#` that is just text.
+const POUND = '|_pound_|';
+const POUND_REGEX = /\|_pound_\|/g;
 
 // Quoted braces, as the user wrote them: `'{'`, `'{x}'`. The quotes stay in the text (see `mfEscape`) so they can be printed as written.
 const QUOTED_BRACES = "'([{}](?:[^']*?[{}])?)'";
+const QUOTED_BRACES_ONLY = "'[{}](?:[^']*?[{}])?'"; // the same without the capture group
 
-// Either those, or a stretch of text from its first literal brace (or `#`, in a plural) to its last, plus any apostrophes
+// A `<` that would open or close a tag, with the rest of the tag if it has one. (`<br/>` is text to the parser, so it is not one.)
+const TAG = "<(?=[a-zA-Z/])(?![^<>{}']*/>)(?:[^<>{}']*>)?";
+
+// Either those, or a stretch of text from its first literal brace, tag (or `#`, in a plural) to its last, plus any apostrophes
 // right after it. That is text the parser took from an unterminated or oddly-ended quote, and it has to be quoted again.
-const textRegex = parentValue => new RegExp(`${QUOTED_BRACES}|([${parentValue ? '{}#' : '{}'}](?:.*[${parentValue ? '{}#' : '{}'}])?'*)`, 'gsu');
+// Braces and tags are one stretch, because quotes side by side (`'<b>''{n}''</b>'`) would read as apostrophes.
+// A stretch stops short of any quoted braces in it, which are printed as the user wrote them.
+const textRegex = parentValue => {
+	const token = `(?:[${parentValue ? '{}#' : '{}'}]|${TAG})`;
+	return new RegExp(`${QUOTED_BRACES}|(${token}(?:(?:(?!${QUOTED_BRACES_ONLY}).)*${token})?'*)`, 'gsu');
+};
+
+/** `message` with its unterminated escape runs closed, where the text they are in ends. */
+function closeEscapeRuns(message) {
+	return findUnterminatedEscapeRuns(message).reduceRight((closed, { end }) => `${closed.slice(0, end)}'${closed.slice(end)}`, message);
+}
+
+// Stands for nothing: it comes between an apostrophe and the `>` after it, so the parser does not take them for a quote (it does,
+// but `>` needs no quoting, so they are an apostrophe and a `>`) and nothing doubles the apostrophe. It is removed when the message is printed.
+const BARE = '|_bare_|';
+const BARE_REGEX = /\|_bare_\|/g;
+
+/**
+ * `message` with `BARE` after each apostrophe that is in front of a `>`. (The apostrophe that closes a quote can be one: the parser
+ * closes the quote there either way, and the mark comes out again when the message is printed, so it makes no difference.)
+ */
+function markBareApostrophes(message) {
+	return message.replace(/''|'(?=>)/g, apostrophes => apostrophes === "''" ? apostrophes : `'${BARE}`);
+}
 
 function mfEscape(msg) {
 	return msg.replace(new RegExp(QUOTED_BRACES, 'gsu'), "'''$1'''");
@@ -43,7 +73,7 @@ function mfEscape(msg) {
  * With `source` (the source locale's message), `add` also adds the select options that message has and this one lacks,
  * and argument names are corrected to match it, unless `correct` is `false`.
  *
- * The default rewrites ("essentials") can be switched off individually (`apostrophes`, `hoist`, `normalizeOne`,
+ * The default rewrites ("essentials") can be switched off individually (`apostrophes`, `closeEscapeRuns`, `hoist`, `normalizeOne`,
  * `renameCategories`, `sort`), or all together with `essentials: false`, in which case an individual option set
  * to `true` switches that one back on.
  *
@@ -59,16 +89,15 @@ export function formatMessageSync(msg, options = {}) {
 	let ast;
 
 	try {
-		msg = options.quotes === 'straight' ? msg.replace(/'/g, "'''") : mfEscape(msg);
+		if (options.quotes === 'straight') msg = msg.replace(/'>/g, `'${BARE}>`).replace(/'/g, "'''"); // every apostrophe is one
+		else {
+			// An escape run that does not end where the case or tag it is in does swallows what ends it. Closing it there keeps the text it holds.
+			if (essential('closeEscapeRuns')) msg = closeEscapeRuns(msg);
+			msg = mfEscape(markBareApostrophes(msg));
+		}
 		ast = parse(msg, { requiresOtherClause: false });
 	} catch(err) {
-		try {
-			const alteredMsg = msg.replace('\'{', '’{');
-			ast = parse(alteredMsg, { requiresOtherClause: false });
-			msg = alteredMsg;
-		} catch {
-			return { message: input, error: err, errorText: msg, warnings };
-		}
+		return { message: input, error: err, errorText: msg, warnings };
 	}
 	if (options.expandHashes) {
 		expandASTHashes(ast);
@@ -118,9 +147,12 @@ export function formatMessageSync(msg, options = {}) {
 		sort: essential('sort'),
 	}, options.baseTabs);
 
-	// A literal apostrophe before something that would start a quote (`{`, `}`, `<`, `>`, `#`, another apostrophe),
+	// A literal apostrophe before something that would start a quote (`{`, `}`, `<`, `>`, a plural's `#`, another apostrophe),
 	// or before the quotes this adds, has to be doubled to stay one. Quote replacement (`quotes`) handles its own.
-	const message = (options.quotes ? printed : printed.replace(/'(?=['{}<>#]|\|_escape_\|)/g, "''")).replace(ESCAPE_REGEX, "'");
+	const message = (options.quotes ? printed : printed.replace(/'(?=['{}<>]|\|_escape_\||\|_pound_\|)/g, "''"))
+		.replace(ESCAPE_REGEX, "'")
+		.replace(POUND_REGEX, '#')
+		.replace(BARE_REGEX, '');
 
 	return { message, warnings };
 }
@@ -196,6 +228,7 @@ function printAST(ast, options, level = 0, parentValue) {
 	} = options;
 
 	const localeLower = locale.toLowerCase();
+	const curlsApostrophes = apostrophes && !quotes && Boolean(localeData?.[locale]);
 
 	if (Array.isArray(ast)) {
 		const swapOneClone = new Set(swapOne);
@@ -317,7 +350,7 @@ function printAST(ast, options, level = 0, parentValue) {
 				/* eslint-enable no-useless-escape */
 			}
 		}
-		if (apostrophes && !quotes && localeData?.[locale]) {
+		if (curlsApostrophes) {
 			const { delimiters } = localeData[locale];
 			const apostrophe = delimiters.apostrophe ?? '\u2019';
 			msg = msg.replace(/'/g, apostrophe);
@@ -332,8 +365,10 @@ function printAST(ast, options, level = 0, parentValue) {
 
 	if (type === 0) { // straight text
 		let escaped = ast.value;
+		// An apostrophe in a quote is written `''`, unless it is about to be curled, which is no apostrophe to the parser.
+		const apostrophe = curlsApostrophes ? "'" : ESCAPE + ESCAPE;
 		escaped = escaped.replace(textRegex(parentValue), (match, quoted, stretch) => quoted === undefined
-			? `${ESCAPE}${stretch.replace(/'/g, ESCAPE + ESCAPE)}${ESCAPE}` // `''` is an apostrophe inside a quote, too
+			? `${ESCAPE}${stretch.replace(/'/g, apostrophe)}${ESCAPE}`
 			: `${ESCAPE}${quoted}${ESCAPE}`);
 
 		escaped = swapOne.size ? escaped.replace(/1/g, `{${[...swapOne].join('|')}}`) : escaped;
@@ -464,7 +499,7 @@ function printAST(ast, options, level = 0, parentValue) {
 		text += `{${argName}, ${typeText},${offsetText}${optionsText}}`;
 	}
 	else if (type === 7) { // #
-		text += '#';
+		text += POUND;
 	}
 	else if (type === 8) { // tag
 		text += `<${normalizeArgName(ast.value, type, args)}>${printAST(ast.children, options, level + 1, parentValue)}</${normalizeArgName(ast.value, type, args)}>`;

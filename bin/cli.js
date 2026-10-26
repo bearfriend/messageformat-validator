@@ -94,6 +94,8 @@ program
 	.addOption(new Option('--no-hoist').hideHelp())
 	.addOption(new Option('--apostrophes').hideHelp())
 	.addOption(new Option('--no-apostrophes').hideHelp())
+	.addOption(new Option('--close-escape-runs').hideHelp())
+	.addOption(new Option('--no-close-escape-runs').hideHelp())
 	.addOption(new Option('--normalize-one').hideHelp())
 	.addOption(new Option('--no-normalize-one').hideHelp())
 	.addOption(new Option('--rename-categories').hideHelp())
@@ -107,7 +109,7 @@ program
 		commandOpts = this.opts();
 		// Each has both a positive and a negative form, so none default to `true`; only the ones given are passed on.
 		essentialOpts = Object.fromEntries(
-			['essentials', 'hoist', 'apostrophes', 'normalizeOne', 'renameCategories', 'sort'].map(name => [name, commandOpts[name]])
+			['essentials', 'hoist', 'apostrophes', 'closeEscapeRuns', 'normalizeOne', 'renameCategories', 'sort'].map(name => [name, commandOpts[name]])
 		);
 		/*
 		program.newlines = opts.newlines;

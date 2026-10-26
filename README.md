@@ -114,6 +114,8 @@ Some options can be configured with default values in `mfv.config.json`
 
 `category-missing` - Missing categories used by the target locale
 
+`escape` - Unterminated escape run
+
 `nest-ideal` - A `select` is nested inside a `plural` or `selectordinal`
 
 `nest-order` - Nesting order does not match source
