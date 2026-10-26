@@ -152,12 +152,30 @@ export default {
 			"apostrophe": "’"
 		}
 	},
+	"pl": {
+		"delimiters": {
+			"quotationStart": "„",
+			"alternateQuotationStart": "«",
+			"alternateQuotationEnd": "»",
+			"quotationEnd": "”",
+			"apostrophe": "’"
+		}
+	},
 	"pt": {
 		"delimiters": {
 			"quotationStart": "“",
 			"quotationEnd": "”",
 			"alternateQuotationStart": "‘",
 			"alternateQuotationEnd": "’",
+			"apostrophe": "’"
+		}
+	},
+	"ru": {
+		"delimiters": {
+			"quotationStart": "«",
+			"quotationEnd": "»",
+			"alternateQuotationStart": "„",
+			"alternateQuotationEnd": "“",
 			"apostrophe": "’"
 		}
 	},
@@ -186,6 +204,15 @@ export default {
 			"alternateQuotationStart": "‘",
 			"alternateQuotationEnd": "’",
 			"apostrophe": "’",
+		}
+	},
+	"ur": {
+		"delimiters": {
+			"quotationStart": "”",
+			"quotationEnd": "“",
+			"alternateQuotationStart": "’",
+			"alternateQuotationEnd": "‘",
+			"apostrophe": "’"
 		}
 	},
 	"vi": {

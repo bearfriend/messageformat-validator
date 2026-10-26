@@ -4,7 +4,7 @@ import { formatList, getConfig } from './src/utils.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const defaultLocales = ['ar', 'ca', 'cy', 'da', 'de', 'en', 'en-gb', 'es', 'es-es', 'fr', 'fr-ca', 'fr-fr', 'haw', 'hi', 'ja', 'ko', 'mi', 'nl', 'pt', 'sv', 'th', 'tr', 'vi', 'zh-cn', 'zh-tw'];
+const defaultLocales = ['ar', 'ca', 'cy', 'da', 'de', 'en', 'en-gb', 'es', 'es-es', 'fr', 'fr-ca', 'fr-fr', 'haw', 'hi', 'ja', 'ko', 'mi', 'nl', 'pl', 'pt', 'ru', 'sv', 'th', 'ur', 'tr', 'vi', 'zh-cn', 'zh-tw'];
 const defaultLocaleMap = { 'fr-on': 'fr-ca' };
 
 const SAVE_PATH = fileURLToPath(new URL('./src/locale-data.js', import.meta.url));
